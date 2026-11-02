@@ -1,0 +1,2200 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>미적감각 테스트</title>
+<style>
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;font-size:14px}
+img{max-width:100%}
+[hidden]{display:none!important}
+
+/* Layout: one plain centered column; stage on top, controls below. */
+:root{
+  --bg:#f6f6f7; --fg:#1c1d20; --muted:#666a72; --line:#d7d9de; --surface:#ffffff;
+  --stage:#e8e9ec; --accent:#2f62e0; --truth:#d42a68; --shape:#7d818a;
+  --font: system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#151619; --fg:#e7e8eb; --muted:#9a9ea7; --line:#34373d; --surface:#1e2024;
+    --stage:#2a2c31; --accent:#6f9bff; --truth:#ff5f94; --shape:#8e929a; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#151619; --fg:#e7e8eb; --muted:#9a9ea7; --line:#34373d; --surface:#1e2024;
+  --stage:#2a2c31; --accent:#6f9bff; --truth:#ff5f94; --shape:#8e929a; color-scheme:dark;
+}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.55}
+main{max-width:640px;margin:0 auto;padding-block:20px 56px;
+  padding-left:max(16px, env(safe-area-inset-left,0px));padding-right:max(16px, env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:14px}
+h1{font-size:1.4rem;margin:0;text-wrap:balance}
+h2{font-size:1.15rem;margin:0;display:flex;gap:8px;align-items:baseline}
+h2 .r{font-size:.85rem;color:var(--muted);font-weight:500;font-variant-numeric:tabular-nums}
+p{margin:0}
+.muted{color:var(--muted)}
+.small{font-size:.85rem}
+.top{display:flex;justify-content:space-between;align-items:center;font-size:.85rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.prog{height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+.prog > i{display:block;height:100%;background:var(--accent)}
+.instr{font-size:.95rem}
+.stage{display:flex;flex-direction:column;align-items:center;gap:14px}
+.stage-svg{display:block;width:100%;height:auto;max-height:68vh;border-radius:6px;user-select:none;-webkit-user-select:none}
+.touch{touch-action:none}
+button{font:inherit;font-size:1rem;padding:12px 18px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+button:disabled{opacity:.4;cursor:default}
+button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+.feedback{border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:10px}
+.feedback .score{font-size:1.3rem;font-weight:700;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;max-width:420px;accent-color:var(--accent);touch-action:pan-y}
+.ctl{display:flex;flex-direction:column;align-items:center;gap:4px;width:100%}
+.ctl span{font-size:.85rem;color:var(--muted)}
+.val{font-size:1.4rem;font-weight:700;font-variant-numeric:tabular-nums}
+.hint{font-size:.85rem;color:var(--muted);text-align:center}
+.cols{display:flex;flex-wrap:wrap;gap:18px;align-items:center;justify-content:center;width:100%}
+.swbox{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:.85rem;color:var(--muted)}
+.sw{width:110px;height:110px;border-radius:6px}
+.sw.sm{width:84px;height:84px}
+.op{font-size:1.4rem;color:var(--muted)}
+.pair{display:flex}
+.pair .swbox .sw{border-radius:0}
+.pair .swbox:first-child .sw{border-radius:6px 0 0 6px}
+.pair .swbox:last-child .sw{border-radius:0 6px 6px 0}
+.picker{display:block;width:min(300px,100%);height:auto;touch-action:none;user-select:none;-webkit-user-select:none}
+.mode{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:8px 12px;font-size:.9rem;text-align:center}
+.chips{display:flex;gap:3px;width:100%;touch-action:none;user-select:none;-webkit-user-select:none}
+.chip{flex:1 1 0;min-width:0;height:72px;border-radius:4px;cursor:pointer;position:relative;transition:transform .12s}
+.chip.fixed{cursor:default}
+.chip.fixed::after{content:"";position:absolute;left:50%;bottom:-10px;width:6px;height:6px;margin-left:-3px;border-radius:50%;background:var(--fg)}
+.chip.sel{transform:translateY(-8px);outline:3px solid var(--accent);outline-offset:1px}
+.chip.over{outline:2px dashed var(--fg);outline-offset:1px}
+.chips.answer .chip{height:36px;cursor:default}
+fieldset{border:1px solid var(--line);border-radius:8px;padding:10px 14px 12px;margin:0;display:flex;flex-wrap:wrap;gap:8px 18px}
+legend{font-size:.85rem;color:var(--muted);padding:0 4px}
+label.opt{display:flex;gap:6px;align-items:center;font-size:.95rem;cursor:pointer}
+label.opt input{accent-color:var(--accent);width:18px;height:18px;margin:0}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+td,th{padding:9px 4px;border-bottom:1px solid var(--line);text-align:left;font-size:.92rem;vertical-align:middle}
+th{font-weight:600;color:var(--muted);font-size:.8rem}
+tr.cat td{font-weight:700;padding-top:18px;border-bottom:2px solid var(--fg)}
+td.num{text-align:right;width:3.5em;font-weight:600}
+.bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden;min-width:60px}
+.bar > i{display:block;height:100%;background:var(--accent)}
+.total{font-size:3rem;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.stack{display:flex;flex-direction:column;gap:10px}
+input[type=text]{font:inherit;font-size:1rem;padding:11px 12px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--fg);width:100%;min-width:0;box-sizing:border-box}
+.err{color:var(--truth)}
+.roomhead{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
+.code{font-size:2rem;font-weight:700;letter-spacing:.12em;font-variant-numeric:tabular-nums;line-height:1.1}
+.plist{display:flex;flex-wrap:wrap;gap:6px}
+.pchip{display:inline-flex;align-items:baseline;gap:2px;padding:4px 10px;border-radius:999px;background:var(--surface);border:1px solid var(--line);font-size:.88rem}
+.pchip.me{border-color:var(--accent)}
+.badge{font-size:.72rem;color:var(--accent);font-weight:700;margin-left:5px}
+.badge.muted{color:var(--muted)}
+.prog-n{font-size:.78rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.live:empty{display:none}
+.banner{background:var(--surface);border:1px solid var(--accent);border-radius:8px;padding:10px 12px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+td.rk{width:2em;font-weight:700}
+tr.meRow td{background:var(--surface)}
+.grow{flex:1;align-self:center}
+@media (prefers-reduced-motion: reduce){.chip{transition:none}}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script>
+/* Standalone room layer: PeerJS star network that mimics the room API the game uses.
+   The first browser to claim the room id becomes the hub and relays everyone's presence.
+   If the hub leaves, the remaining browsers race to claim the id and carry on. */
+(function () {
+  if (window.claude) return;
+  window.__standalone = true;
+  const PeerCls = window.Peer || (window.peerjs && window.peerjs.Peer);
+  const PREFIX = 'aesthetic-sense-test-v1-';
+  const MAX = 4096;
+  const isObj = v => v && typeof v === 'object' && !Array.isArray(v);
+  const sizeOk = v => { try { return JSON.stringify(v).length <= MAX; } catch (_) { return false; } };
+
+  function NamedRoom(code) {
+    const hubId = PREFIX + code;
+    let peer = null, myId = null, isHub = false, conn = null, left = false, failed = false;
+    let myPres = {};
+    let snap = new Map();               // id -> presence
+    const conns = new Map();            // hub: id -> DataConnection
+    const listeners = new Set(), errs = new Set();
+    let notifyQ = false, bcastQ = null, attempts = 0, gen = 0;
+
+    const peersArr = () => [...snap.entries()].map(([id, p]) => ({
+      peer: id, by: null, isMe: id === myId, sameTab: id === myId, kind: 'viewer', guest: false,
+      presence: p || {}, updatedAt: Date.now()
+    }));
+    function notify() {
+      if (notifyQ) return; notifyQ = true;
+      setTimeout(() => { notifyQ = false; const ps = peersArr(); listeners.forEach(h => { try { h({ peers: ps, joined: [], left: [], updated: [] }); } catch (_) {} }); }, 0);
+    }
+    function broadcast() {
+      if (!isHub || bcastQ) return;
+      bcastQ = setTimeout(() => {
+        bcastQ = null;
+        const s = {}; snap.forEach((p, id) => { s[id] = p; });
+        conns.forEach(c => { if (c.open) { try { c.send({ t: 's', s }); } catch (_) {} } });
+      }, 60);
+    }
+    function fail() {
+      if (failed || left) return; failed = true;
+      errs.forEach(h => { try { h({ code: 'upstream_error', message: 'room connection lost' }); } catch (_) {} });
+    }
+    function destroyPeer() { try { if (peer) peer.destroy(); } catch (_) {} peer = null; conn = null; conns.clear(); }
+
+    function becomeHub(p, id, done) {
+      peer = p; myId = id; isHub = true; attempts = 0;
+      const keep = new Map(); keep.set(myId, myPres);
+      snap = keep;
+      p.on('connection', c => {
+        c.on('data', d => {
+          if (!isObj(d) || d.t !== 'p' || !isObj(d.p) || !sizeOk(d.p)) return;
+          snap.set(c.peer, d.p); conns.set(c.peer, c); broadcast(); notify();
+        });
+        const drop = () => { conns.delete(c.peer); if (snap.delete(c.peer)) { broadcast(); notify(); } };
+        c.on('close', drop); c.on('error', drop);
+      });
+      p.on('disconnected', () => { if (!left) { try { p.reconnect(); } catch (_) {} } });
+      notify(); done();
+    }
+    function becomeClient(p, id, done, retry) {
+      peer = p; myId = id; isHub = false;
+      const c = p.connect(hubId, { reliable: true });
+      let opened = false;
+      const timer = setTimeout(() => { if (!opened) { destroyPeer(); retry(); } }, 9000);
+      c.on('open', () => {
+        opened = true; clearTimeout(timer); conn = c; attempts = 0;
+        snap.set(myId, myPres);
+        try { c.send({ t: 'p', p: myPres }); } catch (_) {}
+        notify(); done();
+      });
+      c.on('data', d => {
+        if (!isObj(d) || d.t !== 's' || !isObj(d.s) || JSON.stringify(d.s).length > 300000) return;
+        const m = new Map();
+        for (const id in d.s) if (isObj(d.s[id])) m.set(id, d.s[id]);
+        m.set(myId, myPres);
+        snap = m; notify();
+      });
+      const lost = () => { if (left || !opened) return; opened = false; conn = null; destroyPeer(); setTimeout(retry, 300 + Math.random() * 1200); };
+      c.on('close', lost); c.on('error', lost);
+    }
+
+    function connect(done, onGiveUp) {
+      if (left) return;
+      const my = ++gen;
+      attempts++;
+      if (attempts > 8) { onGiveUp(); return; }
+      const retry = () => { if (my === gen && !left) connect(done, onGiveUp); };
+      let p;
+      try { p = new PeerCls(hubId, { debug: 0 }); } catch (_) { setTimeout(retry, 1000); return; }
+      let settled = false;
+      p.on('open', id => { settled = true; becomeHub(p, id, done); });
+      p.on('error', e => {
+        if (settled) { if (isHub && e && e.type === 'network') { /* signalling hiccup; peers keep working */ } return; }
+        settled = true;
+        try { p.destroy(); } catch (_) {}
+        if (e && e.type === 'unavailable-id') {
+          let q;
+          try { q = new PeerCls(undefined, { debug: 0 }); } catch (_) { setTimeout(retry, 1000); return; }
+          let ok = false;
+          q.on('open', id => { ok = true; becomeClient(q, id, done, retry); });
+          q.on('error', err => {
+            if (err && err.type === 'peer-unavailable') { destroyPeer(); try { q.destroy(); } catch (_) {} setTimeout(retry, 400 + Math.random() * 800); }
+            else if (!ok) { try { q.destroy(); } catch (_) {} setTimeout(retry, 1500); }
+          });
+        } else {
+          setTimeout(retry, 1500);
+        }
+      });
+    }
+
+    const api = {
+      name: code,
+      presence(patch) {
+        if (!isObj(patch)) return Promise.reject({ code: 'invalid_argument', message: 'patch must be an object' });
+        const next = Object.assign({}, myPres);
+        for (const k in patch) { if (patch[k] === null) delete next[k]; else next[k] = patch[k]; }
+        if (!sizeOk(next)) return Promise.reject({ code: 'invalid_argument', message: 'presence too large' });
+        myPres = next;
+        if (myId) snap.set(myId, myPres);
+        if (isHub) broadcast();
+        else if (conn && conn.open) { try { conn.send({ t: 'p', p: myPres }); } catch (_) {} }
+        notify();
+        return Promise.resolve();
+      },
+      peers: () => peersArr(),
+      onPeers(h, onErr) { listeners.add(h); if (onErr) errs.add(onErr); notify(); return () => { listeners.delete(h); if (onErr) errs.delete(onErr); }; },
+      emit: () => Promise.resolve(), on: () => () => {},
+      connected: () => !!(isHub || (conn && conn.open)),
+      onConnection: () => () => {},
+      leave() { left = true; listeners.clear(); errs.clear(); destroyPeer(); return Promise.resolve(); },
+      _start(resolve, reject) {
+        let first = true;
+        connect(() => { if (first) { first = false; resolve(api); } },
+          () => { if (first) { first = false; destroyPeer(); reject({ code: 'upstream_error', message: 'could not reach room' }); } else fail(); });
+      }
+    };
+    return api;
+  }
+
+  const room = {
+    join(code) { return new Promise((res, rej) => NamedRoom(code)._start(res, rej)); }
+  };
+  window.claude = { use: async name => (name === 'room' && PeerCls ? room : null) };
+})();
+</script>
+<script>
+(() => {
+let RNG = Math.random; // swapped for a seeded generator per question
+const TAU = Math.PI * 2;
+const NS = 'http://www.w3.org/2000/svg';
+const rand = (a, b) => a + RNG() * (b - a);
+const ri = (a, b) => Math.floor(rand(a, b + 1));
+const pick = arr => arr[Math.floor(RNG() * arr.length)];
+const sgn = () => (RNG() < 0.5 ? -1 : 1);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const clamp01 = v => clamp(v, 0, 1);
+const shuffle = arr => { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(RNG() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; };
+/* score curve: flat near zero error, 50 points at err = 1.3k (e.g. area 112% ≈ 77, angle 2° ≈ 80) */
+const scoreExp = (err, k) => Math.round(100 / (1 + (err / (1.3 * k)) ** 2));
+const hueDiff = (a, b) => { const d = Math.abs(((a - b) % 360 + 360) % 360); return Math.min(d, 360 - d); };
+const deg = r => r * 180 / Math.PI;
+const rad = d => d * Math.PI / 180;
+const nearAny = (v, list, tol) => list.some(m => Math.abs(v - m) < tol);
+const distLine = (p, a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1]; return Math.abs((p[0] - a[0]) * dy - (p[1] - a[1]) * dx) / Math.hypot(dx, dy); };
+const inBox = (p, x0, y0, x1, y1) => p[0] >= x0 && p[0] <= x1 && p[1] >= y0 && p[1] <= y1;
+let gid = 0;
+
+function el(tag, attrs = {}, ...kids) {
+  const e = document.createElement(tag);
+  for (const k in attrs) {
+    if (k === 'class') e.className = attrs[k];
+    else if (k === 'text') e.textContent = attrs[k];
+    else if (k === 'hidden') e.hidden = attrs[k];
+    else e.setAttribute(k, attrs[k]);
+  }
+  for (const c of kids) if (c != null) e.append(c);
+  return e;
+}
+function svgEl(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function svgText(parent, x, y, str, style) {
+  const t = svgEl('text', { x, y, style: 'font-family:inherit;' + (style || 'fill:var(--muted);font-size:30px') }, parent);
+  t.textContent = str; return t;
+}
+function makeSVG(w, h, touch) {
+  const s = svgEl('svg', { viewBox: `0 0 ${w} ${h}`, class: 'stage-svg' + (touch ? ' touch' : '') });
+  svgEl('rect', { x: 0, y: 0, width: w, height: h, style: 'fill:var(--stage)' }, s);
+  return s;
+}
+function svgPoint(svg, e) {
+  const p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY;
+  const q = p.matrixTransform(svg.getScreenCTM().inverse());
+  return [q.x, q.y];
+}
+const ptsAttr = pts => pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+const ln = (g, a, b, style) => svgEl('line', { x1: a[0], y1: a[1], x2: b[0], y2: b[1], style }, g);
+const DASH = 'stroke:var(--truth);stroke-width:2.5;stroke-dasharray:12 8;fill:none';
+
+/* generic drag on an svg */
+function onDrag(svg, h) {
+  let active = false, locked = false;
+  svg.addEventListener('pointerdown', e => {
+    if (locked) return;
+    e.preventDefault();
+    try { svg.setPointerCapture(e.pointerId); } catch (_) {}
+    active = true;
+    const p = svgPoint(svg, e);
+    if (h.down) h.down(p); else if (h.move) h.move(p);
+  });
+  svg.addEventListener('pointermove', e => { if (active && !locked && h.move) h.move(svgPoint(svg, e)); });
+  svg.addEventListener('pointerup', e => { if (!active) return; active = false; if (!locked && h.up) h.up(svgPoint(svg, e)); });
+  svg.addEventListener('pointercancel', () => { active = false; });
+  return { lock() { locked = true; } };
+}
+
+/* slider with randomized mapping */
+function slider(label, init01, showVal) {
+  const s = el('input', { type: 'range', min: 0, max: 1000, step: 1, id: 'sl-' + (++gid), 'aria-label': label });
+  s.value = Math.round(init01 * 1000);
+  const wrap = el('div', { class: 'ctl' }, showVal ? null : el('span', { text: label }), s);
+  return { wrap, input: s, get: () => s.value / 1000 };
+}
+
+/* ---------- color math ---------- */
+const s2l = c => c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+const l2s = c => c <= 0.0031308 ? 12.92 * c : 1.055 * Math.pow(c, 1 / 2.4) - 0.055;
+function rgb2oklab(rgb) {
+  const [r, g, b] = rgb.map(s2l);
+  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+  const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+  const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+  return [0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s,
+          1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s,
+          0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s];
+}
+function oklab2lin([L, a, b]) {
+  const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3;
+  const m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3;
+  const s = (L - 0.0894841775 * a - 1.2914855480 * b) ** 3;
+  return [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+          -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+          -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s];
+}
+function oklch2rgb(L, C, h) {
+  const lin = oklab2lin([L, C * Math.cos(rad(h)), C * Math.sin(rad(h))]);
+  if (lin.some(v => v < -0.0005 || v > 1.0005)) return null;
+  return lin.map(v => l2s(clamp01(v)));
+}
+function hsv2rgb(h, s, v) {
+  h = ((h % 360) + 360) % 360;
+  const f = n => { const k = (n + h / 60) % 6; return v - v * s * Math.max(0, Math.min(k, 4 - k, 1)); };
+  return [f(5), f(3), f(1)];
+}
+const q8 = rgb => rgb.map(c => Math.round(clamp01(c) * 255) / 255);
+const css = rgb => `rgb(${rgb.map(c => Math.round(clamp01(c) * 255)).join(',')})`;
+const gray = g => [g, g, g];
+const dE = (x, y) => { const a = rgb2oklab(x), b = rgb2oklab(y); return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]); };
+const okL = rgb => rgb2oklab(rgb)[0];
+const lumY = rgb => { const [r, g, b] = rgb.map(s2l); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+const lstar = g => { const Y = s2l(g); return Y > 0.008856 ? 116 * Math.cbrt(Y) - 16 : 903.3 * Y; };
+const randColor = (smin = 0.35, vmin = 0.4) => q8(hsv2rgb(rand(0, 360), rand(smin, 1), rand(vmin, 1)));
+
+function swatch(rgb, label, small) {
+  return el('div', { class: 'swbox' }, el('div', { class: 'sw' + (small ? ' sm' : ''), style: `background:${css(rgb)}` }), label ? el('span', { text: label }) : null);
+}
+function comparePair(a, la, b, lb) {
+  return el('div', { class: 'pair' }, swatch(a, la, true), swatch(b, lb, true));
+}
+
+/* ---------- point picker: tap to place, drag to nudge ---------- */
+function pointPicker(svg, W, H, onSet) {
+  const g = svgEl('g', {}, svg);
+  let m = null, start = null, ms = null, moved = false, locked = false;
+  const unit = () => { const c = svg.getScreenCTM(); return c ? 1 / c.a : 1; };
+  const cl = p => [clamp(p[0], 0, W), clamp(p[1], 0, H)];
+  function draw() {
+    g.replaceChildren();
+    if (!m) return;
+    const u = unit(), st = `stroke:var(--accent);stroke-width:${2.5 * u};fill:none`;
+    svgEl('circle', { cx: m[0], cy: m[1], r: 11 * u, style: st }, g);
+    svgEl('circle', { cx: m[0], cy: m[1], r: 2.2 * u, style: 'fill:var(--accent)' }, g);
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]])
+      svgEl('line', { x1: m[0] + dx * 15 * u, y1: m[1] + dy * 15 * u, x2: m[0] + dx * 26 * u, y2: m[1] + dy * 26 * u, style: st }, g);
+  }
+  svg.addEventListener('pointerdown', e => {
+    if (locked) return;
+    e.preventDefault();
+    try { svg.setPointerCapture(e.pointerId); } catch (_) {}
+    start = svgPoint(svg, e); ms = m; moved = false;
+  });
+  svg.addEventListener('pointermove', e => {
+    if (!start || locked) return;
+    const p = svgPoint(svg, e), dx = p[0] - start[0], dy = p[1] - start[1];
+    if (!moved && Math.hypot(dx, dy) > 8 * unit()) moved = true;
+    if (moved) { m = cl(ms ? [ms[0] + dx, ms[1] + dy] : p); draw(); }
+  });
+  svg.addEventListener('pointerup', e => {
+    if (!start || locked) return;
+    if (!moved) m = cl(svgPoint(svg, e));
+    start = null; draw(); onSet();
+  });
+  svg.addEventListener('pointercancel', () => { start = null; });
+  return { get: () => m, lock() { locked = true; } };
+}
+
+/* ---------- infinite-line drawer ---------- */
+function lineDrawer(svg, onReady) {
+  const g = svgEl('g', {}, svg);
+  let a = null, b = null;
+  function draw() {
+    g.replaceChildren();
+    if (!a || !b) return;
+    const dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy);
+    if (L < 1) return;
+    const ux = dx / L, uy = dy / L;
+    ln(g, [a[0] - ux * 3000, a[1] - uy * 3000], [a[0] + ux * 3000, a[1] + uy * 3000], 'stroke:var(--accent);stroke-width:3;opacity:.5');
+    ln(g, a, b, 'stroke:var(--accent);stroke-width:5;stroke-linecap:round');
+  }
+  const d = onDrag(svg, {
+    down: p => { a = p; b = p; draw(); },
+    move: p => { b = p; draw(); },
+    up: p => { b = p; draw(); onReady(Math.hypot(b[0] - a[0], b[1] - a[1]) >= 80); }
+  });
+  return { get: () => [a, b], lock: d.lock };
+}
+
+/* ---------- memory phase helper ---------- */
+function memoryButton(stage, onDone) {
+  const btn = el('button', { text: '외웠어요' });
+  btn.onclick = () => { btn.remove(); onDone(); };
+  stage.append(btn);
+}
+
+/* =========================================================
+   원근·투시
+   ========================================================= */
+
+/* 소실점 */
+function genVP() {
+  const vp = [rand(400, 600), rand(400, 600)], rot = rand(-0.5, 0.5), phi0 = rand(0, TAU);
+  const c = Math.cos(rot), s = Math.sin(rot);
+  const R = ([x, y]) => { const dx = x - vp[0], dy = y - vp[1]; return [vp[0] + dx * c - dy * s, vp[1] + dx * s + dy * c]; };
+  const boxes = [];
+  for (let i = 0; i < 3; i++) {
+    const phi = phi0 + i * TAU / 3 + rand(-0.35, 0.35), d = rand(300, 400);
+    const w = rand(90, 170), h = rand(90, 170), t = rand(0.18, 0.3);
+    const cx = vp[0] + d * Math.cos(phi), cy = vp[1] + d * Math.sin(phi);
+    const front = [[cx - w / 2, cy - h / 2], [cx + w / 2, cy - h / 2], [cx + w / 2, cy + h / 2], [cx - w / 2, cy + h / 2]].map(R);
+    const back = front.map(([x, y]) => [vp[0] + (x - vp[0]) * (1 - t), vp[1] + (y - vp[1]) * (1 - t)]);
+    for (const p of [...front, ...back]) if (!inBox(p, 25, 25, 975, 975)) return null;
+    for (const p of back) if (Math.hypot(p[0] - vp[0], p[1] - vp[1]) < 115) return null;
+    boxes.push({ front, back });
+  }
+  return { vp, boxes };
+}
+function testVP(stage, ready) {
+  let S = null;
+  for (let i = 0; i < 1000 && !S; i++) S = genVP();
+  const svg = makeSVG(1000, 1000, true); stage.append(svg);
+  const g = svgEl('g', { style: 'stroke:var(--fg);stroke-width:3;fill:none;stroke-linejoin:round' }, svg);
+  for (const b of S.boxes) {
+    svgEl('polygon', { points: ptsAttr(b.front) }, g);
+    svgEl('polygon', { points: ptsAttr(b.back) }, g);
+    for (let k = 0; k < 4; k++) ln(g, b.front[k], b.back[k]);
+  }
+  const pp = pointPicker(svg, 1000, 1000, () => ready(true));
+  return {
+    instr: '세 상자의 깊이 방향 모서리는 모두 한 점(소실점)으로 모입니다. 그 점을 찍으세요. 탭하면 찍히고, 아무 곳에서나 드래그하면 표시가 그만큼 움직입니다.',
+    submit() {
+      pp.lock();
+      const m = pp.get(), err = Math.hypot(m[0] - S.vp[0], m[1] - S.vp[1]);
+      const og = svgEl('g', { style: 'stroke:var(--truth);stroke-width:1.5;stroke-dasharray:8 7;opacity:.85' }, svg);
+      for (const b of S.boxes) for (const p of b.back) ln(og, p, S.vp);
+      svgEl('circle', { cx: S.vp[0], cy: S.vp[1], r: 9, style: 'fill:var(--truth)' }, svg);
+      return { score: scoreExp(err, 30), text: `오차 ${err.toFixed(0)} (화면 폭의 ${(err / 10).toFixed(1)}%). 분홍 점이 정답입니다.` };
+    }
+  };
+}
+
+/* 눈높이선 (2점 투시) */
+function inter(p1, p2, p3, p4) {
+  const d = (p1[0] - p2[0]) * (p3[1] - p4[1]) - (p1[1] - p2[1]) * (p3[0] - p4[0]);
+  const a = p1[0] * p2[1] - p1[1] * p2[0], b = p3[0] * p4[1] - p3[1] * p4[0];
+  return [(a * (p3[0] - p4[0]) - (p1[0] - p2[0]) * b) / d, (a * (p3[1] - p4[1]) - (p1[1] - p2[1]) * b) / d];
+}
+function genEye() {
+  const h = rand(320, 680), VL = [rand(-900, -200), h], VR = [rand(1200, 1900), h];
+  const rot = rad(rand(-18, 18)), c = Math.cos(rot), s = Math.sin(rot);
+  const R = ([x, y]) => { const dx = x - 500, dy = y - 500; return [500 + dx * c - dy * s, 500 + dx * s + dy * c]; };
+  const onLine = (P, V, x) => [x, P[1] + (V[1] - P[1]) * (x - P[0]) / (V[0] - P[0])];
+  const boxes = [], spans = [];
+  for (let t = 0; t < 300 && boxes.length < 3; t++) {
+    const fx = rand(120, 880), above = RNG() < 0.5, H = rand(80, 190);
+    let yt, yb;
+    if (above) { yb = h - rand(50, 230); yt = yb - H; } else { yt = h + rand(50, 230); yb = yt + H; }
+    const Ft = [fx, yt], Fb = [fx, yb];
+    const xl = fx + rand(0.05, 0.14) * (VL[0] - fx), xr = fx + rand(0.05, 0.14) * (VR[0] - fx);
+    if (spans.some(([a, b]) => xl < b + 30 && xr > a - 30)) continue;
+    const Lt = onLine(Ft, VL, xl), Lb = onLine(Fb, VL, xl), Rt = onLine(Ft, VR, xr), Rb = onLine(Fb, VR, xr);
+    const edges = [[Ft, Fb], [Lt, Lb], [Rt, Rb], [Ft, Lt], [Ft, Rt], [Fb, Lb], [Fb, Rb]];
+    if (above) { const Bb = inter(Lb, VR, Rb, VL); edges.push([Lb, Bb], [Rb, Bb]); }
+    else { const Bt = inter(Lt, VR, Rt, VL); edges.push([Lt, Bt], [Rt, Bt]); }
+    const re = edges.map(([p, q]) => [R(p), R(q)]);
+    if (re.flat().some(p => !inBox(p, 25, 25, 975, 975))) continue;
+    spans.push([xl, xr]); boxes.push(re);
+  }
+  if (boxes.length < 2) return null;
+  return { boxes, hl: [R([-500, h]), R([1500, h])], hs: [0, 250, 500, 750, 1000].map(x => R([x, h])) };
+}
+function testEyeLevel(stage, ready) {
+  let S = null;
+  for (let i = 0; i < 500 && !S; i++) S = genEye();
+  const svg = makeSVG(1000, 1000, true); stage.append(svg);
+  const g = svgEl('g', { style: 'stroke:var(--fg);stroke-width:3;stroke-linecap:round' }, svg);
+  for (const b of S.boxes) for (const [p, q] of b) ln(g, p, q);
+  const ld = lineDrawer(svg, ready);
+  return {
+    instr: '두 소실점을 쓰는 투시로 그린 상자들입니다. 화면 밖에 있는 소실점들을 지나는 눈높이선(수평선)을 드래그로 그으세요. 화면이 기울어져 있을 수 있습니다.',
+    submit() {
+      ld.lock();
+      const [a, b] = ld.get();
+      const err = S.hs.reduce((s, p) => s + distLine(p, a, b), 0) / S.hs.length;
+      ln(svg, S.hl[0], S.hl[1], DASH);
+      return { score: scoreExp(err, 25), text: `정답선과의 평균 거리 ${err.toFixed(0)}. 분홍 점선이 정답입니다.` };
+    }
+  };
+}
+
+/* 바닥 등분 */
+function testFloor(stage, ready) {
+  const W = 1000, H = 700;
+  let S = null;
+  for (let t = 0; t < 1000 && !S; t++) {
+    const h = rand(-120, 140), vx = rand(300, 700), y0 = rand(610, 660), cx0 = vx + rand(-160, 160), w0 = rand(260, 420);
+    const xl = cx0 - w0, xr = cx0 + w0;
+    if (xl < 20 || xr > 980) continue;
+    const z = y => 1 / (y - h), yz = zz => h + 1 / zz;
+    const mode = RNG() < 0.5 ? 'mid' : 'next';
+    if (mode === 'mid') {
+      const yf = rand(Math.max(h + 70, 60), y0 - 320);
+      S = { h, vx, y0, xl, xr, mode, yTop: yf, yAns: yz((z(y0) + z(yf)) / 2), lines: [], yLow: y0 };
+    } else {
+      const y1 = y0 - rand(90, 170), d = z(y1) - z(y0), y2 = yz(z(y1) + d);
+      const yTop = Math.max(yz(z(y0) + 3.5 * d), h + 25, 40);
+      if (y2 < yTop + 15) continue;
+      S = { h, vx, y0, xl, xr, mode, yTop, yAns: y2, lines: [y1], yLow: y1 };
+    }
+  }
+  const X = (x0, y) => S.vx + (x0 - S.vx) * (y - S.h) / (S.y0 - S.h);
+  const svg = makeSVG(W, H, true); stage.append(svg);
+  svgEl('polygon', { points: ptsAttr([[X(S.xl, S.yTop), S.yTop], [X(S.xr, S.yTop), S.yTop], [S.xr, S.y0], [S.xl, S.y0]]), style: 'fill:var(--surface);stroke:var(--fg);stroke-width:3;stroke-linejoin:round' }, svg);
+  for (let k = 1; k < 4; k++) { const x0 = S.xl + (S.xr - S.xl) * k / 4; ln(svg, [x0, S.y0], [X(x0, S.yTop), S.yTop], 'stroke:var(--muted);stroke-width:1.5'); }
+  for (const y of S.lines) ln(svg, [X(S.xl, y), y], [X(S.xr, y), y], 'stroke:var(--fg);stroke-width:3');
+  const ug = svgEl('g', {}, svg);
+  let yU = null;
+  const d = onDrag(svg, {
+    move: p => {
+      yU = clamp(p[1], S.yTop + 3, S.yLow - 3);
+      ug.replaceChildren();
+      ln(ug, [X(S.xl, yU) - 20, yU], [X(S.xr, yU) + 20, yU], 'stroke:var(--accent);stroke-width:4');
+      ready(true);
+    }
+  });
+  return {
+    instr: S.mode === 'mid'
+      ? '원근으로 그린 바닥입니다. 실제 깊이로 앞쪽 절반과 뒤쪽 절반이 되는 지점에 가로선을 드래그해서 놓으세요.'
+      : '원근으로 그린 바닥 타일입니다. 맨 앞 타일과 실제 크기가 같은 다음 타일이 끝나는 위치에 가로선을 드래그해서 놓으세요.',
+    submit() {
+      d.lock();
+      const seg = S.mode === 'mid' ? S.yAns - S.yTop : S.yLow - S.yAns;
+      const e = Math.abs(yU - S.yAns) / seg;
+      ln(svg, [X(S.xl, S.yAns) - 20, S.yAns], [X(S.xr, S.yAns) + 20, S.yAns], DASH);
+      return { score: scoreExp(e, 0.12), text: `오차는 해당 구간 깊이의 ${(e * 100).toFixed(0)}%입니다. 분홍 점선이 정답입니다.` };
+    }
+  };
+}
+
+/* 투시 타원 */
+function testEllipse(stage, ready) {
+  const W = 1000, H = 700;
+  let S = null;
+  for (let t = 0; t < 1000 && !S; t++) {
+    const below = RNG() < 0.5;
+    let h, yt, yb;
+    if (below) { h = rand(110, 230); yt = h + rand(70, 170); yb = yt + rand(160, 280); if (yb > 640) continue; }
+    else { h = rand(470, 590); yb = h - rand(70, 170); yt = yb - rand(160, 280); if (yt < 60) continue; }
+    const a = rand(110, 190), cx = rand(300, 700);
+    const df = Math.max(Math.abs(yt - h), Math.abs(yb - h));
+    const kk = rand(0.35, 0.7) / df;
+    const bt = a * kk * Math.abs(yt - h), bb = a * kk * Math.abs(yb - h);
+    const adjTop = RNG() < 0.5;
+    const bTrue = adjTop ? bt : bb;
+    if (bTrue < 8) continue;
+    S = { h, yt, yb, a, cx, bt, bb, adjTop, bTrue, yAdj: adjTop ? yt : yb, yGiv: adjTop ? yb : yt, bGiv: adjTop ? bb : bt };
+  }
+  const svg = makeSVG(W, H, true); stage.append(svg);
+  ln(svg, [0, S.h], [W, S.h], 'stroke:var(--muted);stroke-width:2;stroke-dasharray:4 8');
+  svgText(svg, 16, S.h - 12, '눈높이');
+  const st = 'stroke:var(--fg);stroke-width:3;fill:none';
+  ln(svg, [S.cx - S.a, S.yt], [S.cx - S.a, S.yb], st);
+  ln(svg, [S.cx + S.a, S.yt], [S.cx + S.a, S.yb], st);
+  svgEl('ellipse', { cx: S.cx, cy: S.yGiv, rx: S.a, ry: S.bGiv, style: st }, svg);
+  let f; do { f = rand(0.45, 1.9); } while (f > 0.8 && f < 1.25);
+  let b = clamp(S.bTrue * f, 3, S.a * 0.98);
+  const adj = svgEl('ellipse', { cx: S.cx, cy: S.yAdj, rx: S.a, ry: b, style: 'stroke:var(--accent);stroke-width:3;fill:none' }, svg);
+  const d = onDrag(svg, { move: p => { b = clamp(Math.abs(p[1] - S.yAdj), 3, S.a * 0.98); adj.setAttribute('ry', b); } });
+  ready(true);
+  return {
+    instr: `원기둥의 ${S.adjTop ? '윗면' : '밑면'}(파란 타원)이 눈높이에 맞게 보이도록 위아래로 드래그해서 두께를 조절하세요. 눈높이선에 가까울수록 타원이 납작해집니다.`,
+    submit() {
+      d.lock();
+      svgEl('ellipse', { cx: S.cx, cy: S.yAdj, rx: S.a, ry: S.bTrue, style: DASH }, svg);
+      const r = b / S.bTrue;
+      return { score: scoreExp(Math.abs(Math.log(r)), 0.12), text: `내 타원 두께는 정답의 ${Math.round(r * 100)}%입니다. 분홍 점선이 정답입니다.` };
+    }
+  };
+}
+
+/* 그림자 길이 */
+function testShadow(stage, ready) {
+  const W = 1000, H = 600, G = 470;
+  let S = null;
+  for (let t = 0; t < 1000 && !S; t++) {
+    const dir = sgn(), mode = RNG() < 0.5 ? 'sun' : 'lamp';
+    if (mode === 'sun') {
+      const tan = rand(0.45, 1.6), hA = rand(110, 200);
+      let hB; do { hB = hA * rand(0.45, 1.7); } while (Math.abs(Math.log(hB / hA)) < 0.15);
+      const sA = hA * tan, sB = hB * tan;
+      const xA = dir > 0 ? rand(60, 200) : rand(800, 940);
+      const xB = xA + dir * (sA + rand(80, 200));
+      const tipA = xA + dir * sA, tipB = xB + dir * sB;
+      if ([xB, tipA, tipB].some(x => x < 40 || x > 960)) continue;
+      S = { mode, dir, tan, hA, hB, xA, sA, xB, ans: sB, top: [xB, G - hB] };
+    } else {
+      const Hh = rand(260, 380), xL = dir > 0 ? rand(60, 250) : rand(750, 940), dist = rand(90, 260), xP = xL + dir * dist, hP = Hh * rand(0.3, 0.65);
+      const tip = xL + dir * dist * Hh / (Hh - hP);
+      if (tip < 40 || tip > 960) continue;
+      S = { mode, dir, Hh, xL, xB: xP, hB: hP, ans: Math.abs(tip - xP), top: [xP, G - hP] };
+    }
+  }
+  const svg = makeSVG(W, H, true); stage.append(svg);
+  svgEl('rect', { x: 0, y: G, width: W, height: H - G, style: 'fill:var(--surface)' }, svg);
+  ln(svg, [0, G], [W, G], 'stroke:var(--fg);stroke-width:2');
+  const shadow = (x0, x1) => svgEl('rect', { x: Math.min(x0, x1), y: G, width: Math.abs(x1 - x0), height: 12, style: 'fill:var(--fg);opacity:.45' }, svg);
+  const pole = (x, h) => svgEl('rect', { x: x - 6, y: G - h, width: 12, height: h, style: 'fill:var(--fg)' }, svg);
+  if (S.mode === 'sun') {
+    const sx = S.dir > 0 ? 70 : 930;
+    svgEl('circle', { cx: sx, cy: 70, r: 32, fill: '#f4b400' }, svg);
+    for (let k = 0; k < 8; k++) { const a = k * TAU / 8; ln(svg, [sx + Math.cos(a) * 42, 70 + Math.sin(a) * 42], [sx + Math.cos(a) * 56, 70 + Math.sin(a) * 56], 'stroke:#f4b400;stroke-width:5;stroke-linecap:round'); }
+    shadow(S.xA, S.xA + S.dir * S.sA);
+    pole(S.xA, S.hA);
+  } else {
+    svgEl('rect', { x: S.xL - 4, y: G - S.Hh, width: 8, height: S.Hh, style: 'fill:var(--muted)' }, svg);
+    svgEl('circle', { cx: S.xL, cy: G - S.Hh, r: 34, fill: '#ffd23f', opacity: 0.3 }, svg);
+    svgEl('circle', { cx: S.xL, cy: G - S.Hh, r: 15, fill: '#ffd23f' }, svg);
+  }
+  const ug = svgEl('g', {}, svg);
+  pole(S.xB, S.hB);
+  let len = null;
+  const d = onDrag(svg, {
+    move: p => {
+      const tip = clamp(p[0], 5, 995);
+      len = Math.max(0, (tip - S.xB) * S.dir);
+      ug.replaceChildren();
+      svgEl('rect', { x: Math.min(S.xB, S.xB + S.dir * len), y: G, width: len, height: 12, style: 'fill:var(--accent);opacity:.75' }, ug);
+      ready(len > 5);
+    }
+  });
+  return {
+    instr: S.mode === 'sun'
+      ? '햇빛 아래 왼쪽·오른쪽 막대 중 그림자가 있는 막대를 참고해서, 그림자가 없는 막대의 그림자 끝을 좌우로 드래그해 정하세요.'
+      : '전등 하나가 막대를 비추고 있습니다. 막대 그림자가 땅에서 어디까지 생길지 좌우로 드래그해 정하세요.',
+    submit() {
+      d.lock();
+      const tipT = S.xB + S.dir * S.ans;
+      const from = S.mode === 'sun' ? S.top : [S.xL, G - S.Hh];
+      ln(svg, from, [tipT, G], DASH);
+      svgEl('circle', { cx: tipT, cy: G + 6, r: 9, style: 'fill:var(--truth)' }, svg);
+      const e = Math.abs(len - S.ans) / S.ans;
+      return { score: scoreExp(e, 0.08), text: `내 그림자 길이는 정답의 ${Math.round(len / S.ans * 100)}%입니다. 분홍 점이 정답 끝입니다.` };
+    }
+  };
+}
+
+/* 거울 반사 */
+function testMirror(stage, ready) {
+  const W = 1000, H = 700;
+  let S = null;
+  for (let t = 0; t < 2000 && !S; t++) {
+    const ang = rand(0, 180);
+    if (nearAny(ang, [0, 90, 180], 10)) continue;
+    const M = [rand(400, 600), rand(280, 420)], dv = [Math.cos(rad(ang)), Math.sin(rad(ang))], nv = [-dv[1], dv[0]];
+    const side = sgn(), along = rand(-200, 200), off = rand(90, 260) * side;
+    const P = [M[0] + dv[0] * along + nv[0] * off, M[1] + dv[1] * along + nv[1] * off];
+    const P2 = [P[0] - 2 * nv[0] * off, P[1] - 2 * nv[1] * off];
+    if (!inBox(P, 50, 50, 950, 650) || !inBox(P2, 50, 50, 950, 650)) continue;
+    S = { M, dv, nv, side, P, P2 };
+  }
+  const svg = makeSVG(W, H, true); stage.append(svg);
+  const { M, dv, nv, side } = S;
+  const A = [M[0] - dv[0] * 430, M[1] - dv[1] * 430], B = [M[0] + dv[0] * 430, M[1] + dv[1] * 430];
+  for (let k = -420; k <= 420; k += 28) {
+    const q = [M[0] + dv[0] * k, M[1] + dv[1] * k];
+    ln(svg, q, [q[0] - nv[0] * side * 18 + dv[0] * 12, q[1] - nv[1] * side * 18 + dv[1] * 12], 'stroke:var(--muted);stroke-width:2');
+  }
+  ln(svg, A, B, 'stroke:var(--fg);stroke-width:7;stroke-linecap:round');
+  svgEl('circle', { cx: S.P[0], cy: S.P[1], r: 13, style: 'fill:var(--fg)' }, svg);
+  const pp = pointPicker(svg, W, H, () => ready(true));
+  return {
+    instr: '굵은 선은 거울입니다(빗금 쪽이 뒷면). 검은 점이 거울에 비쳐 보이는 위치를 찍으세요. 드래그로 미세 조정할 수 있습니다.',
+    submit() {
+      pp.lock();
+      const m = pp.get(), err = Math.hypot(m[0] - S.P2[0], m[1] - S.P2[1]);
+      ln(svg, S.P, S.P2, DASH);
+      svgEl('circle', { cx: S.P2[0], cy: S.P2[1], r: 10, style: 'fill:var(--truth)' }, svg);
+      return { score: scoreExp(err, 15), text: `오차 ${err.toFixed(0)}. 분홍 점이 정답입니다.` };
+    }
+  };
+}
+
+/* =========================================================
+   형태·손감각
+   ========================================================= */
+
+function blobUnit() {
+  const n = ri(8, 13), a0 = rand(0, TAU), pts = [];
+  for (let i = 0; i < n; i++) {
+    const a = a0 + (i + rand(-0.3, 0.3)) * TAU / n, r = rand(0.35, 1);
+    pts.push([r * Math.cos(a), r * Math.sin(a)]);
+  }
+  return pts;
+}
+function polyArea(pts) { let s = 0; for (let i = 0; i < pts.length; i++) { const [x1, y1] = pts[i], [x2, y2] = pts[(i + 1) % pts.length]; s += x1 * y2 - x2 * y1; } return s / 2; }
+function polyCentroid(pts) {
+  let A = 0, cx = 0, cy = 0;
+  for (let i = 0; i < pts.length; i++) {
+    const [x1, y1] = pts[i], [x2, y2] = pts[(i + 1) % pts.length], cr = x1 * y2 - x2 * y1;
+    A += cr; cx += (x1 + x2) * cr; cy += (y1 + y2) * cr;
+  }
+  A /= 2; return [cx / (6 * A), cy / (6 * A)];
+}
+
+/* 무게중심 */
+function testCentroid(stage, ready) {
+  const R = rand(300, 370);
+  let pts = blobUnit().map(([x, y]) => [x * R, y * R]);
+  const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+  const bx = (Math.min(...xs) + Math.max(...xs)) / 2, by = (Math.min(...ys) + Math.max(...ys)) / 2;
+  const ox = 500 + rand(-30, 30) - bx, oy = 500 + rand(-30, 30) - by;
+  pts = pts.map(([x, y]) => [x + ox, y + oy]);
+  const cen = polyCentroid(pts);
+  const svg = makeSVG(1000, 1000, true); stage.append(svg);
+  svgEl('polygon', { points: ptsAttr(pts), style: 'fill:var(--shape)' }, svg);
+  const pp = pointPicker(svg, 1000, 1000, () => ready(true));
+  return {
+    instr: '이 도형을 두께가 고른 판자로 잘라 손가락 하나로 받친다고 생각하고, 균형이 맞는 점(무게중심)을 찍으세요. 드래그로 미세 조정할 수 있습니다.',
+    submit() {
+      pp.lock();
+      const m = pp.get(), err = Math.hypot(m[0] - cen[0], m[1] - cen[1]);
+      svgEl('circle', { cx: cen[0], cy: cen[1], r: 9, style: 'fill:var(--truth);stroke:#fff;stroke-width:2' }, svg);
+      return { score: scoreExp(err, 15), text: `오차 ${err.toFixed(0)} (화면 폭의 ${(err / 10).toFixed(1)}%). 분홍 점이 정답입니다.` };
+    }
+  };
+}
+
+/* 넓이 */
+const SHAPE_NAMES = { circle: '원', square: '정사각형', tri: '정삼각형', hex: '정육각형', star: '별', rect: '긴 직사각형', blob: '불규칙 도형' };
+function shapePts(type, A) {
+  const P = (r, a) => [r * Math.cos(a), r * Math.sin(a)];
+  switch (type) {
+    case 'circle': { const n = 120, R = Math.sqrt(A / (n / 2 * Math.sin(TAU / n))); return Array.from({ length: n }, (_, i) => P(R, i * TAU / n)); }
+    case 'square': { const s = Math.sqrt(A) / 2; return [[-s, -s], [s, -s], [s, s], [-s, s]]; }
+    case 'rect': { const h = Math.sqrt(A / 2.6), w = 2.6 * h; return [[-w / 2, -h / 2], [w / 2, -h / 2], [w / 2, h / 2], [-w / 2, h / 2]]; }
+    case 'tri': { const s = Math.sqrt(4 * A / Math.sqrt(3)), R = s / Math.sqrt(3); return [0, 1, 2].map(i => P(R, -Math.PI / 2 + i * TAU / 3)); }
+    case 'hex': { const s = Math.sqrt(2 * A / (3 * Math.sqrt(3))); return [0, 1, 2, 3, 4, 5].map(i => P(s, i * TAU / 6)); }
+    case 'star': { const R = Math.sqrt(A / (5 * 0.45 * Math.sin(Math.PI / 5))); return Array.from({ length: 10 }, (_, i) => P(i % 2 ? R * 0.45 : R, -Math.PI / 2 + i * TAU / 10)); }
+    case 'blob': {
+      const u = blobUnit(), c = polyCentroid(u), k = Math.sqrt(A / Math.abs(polyArea(u)));
+      return u.map(([x, y]) => [(x - c[0]) * k, (y - c[1]) * k]);
+    }
+  }
+}
+const rotPts = (pts, a) => { const c = Math.cos(a), s = Math.sin(a); return pts.map(([x, y]) => [x * c - y * s, x * s + y * c]); };
+const movePts = (pts, k, ox, oy) => pts.map(([x, y]) => [x * k + ox, y * k + oy]);
+function testArea(stage, ready) {
+  const ta = pick(['tri', 'star', 'rect', 'hex', 'blob', 'circle']);
+  let tb; do { tb = pick(['circle', 'square', 'tri']); } while (tb === ta);
+  const A = Math.PI * rand(70, 105) ** 2;
+  const pa = rotPts(shapePts(ta, A), rand(0, TAU));
+  const pb = rotPts(shapePts(tb, A), rand(0, TAU));
+  const lo = Math.log(rand(0.38, 0.5)), hi = Math.log(rand(1.8, 2.1));
+  let v; do { v = RNG(); } while (Math.abs(lo + v * (hi - lo)) < Math.log(1.2));
+  let ratio = Math.exp(lo + v * (hi - lo));
+  const svg = makeSVG(1000, 600, false); stage.append(svg);
+  svgEl('polygon', { points: ptsAttr(movePts(pa, 1, 250, 300)), style: 'fill:var(--shape)' }, svg);
+  const bEl = svgEl('polygon', { style: 'fill:var(--shape)' }, svg);
+  const draw = () => bEl.setAttribute('points', ptsAttr(movePts(pb, Math.sqrt(ratio), 750, 300)));
+  draw();
+  const sl = slider('오른쪽 도형 크기', v);
+  sl.input.addEventListener('input', () => { ratio = Math.exp(lo + sl.get() * (hi - lo)); draw(); });
+  stage.append(sl.wrap);
+  ready(true);
+  return {
+    instr: `오른쪽 ${SHAPE_NAMES[tb]}의 크기를 슬라이더로 조절해서 왼쪽 ${SHAPE_NAMES[ta]}과(와) 넓이가 같아지게 만드세요.`,
+    submit() {
+      sl.input.disabled = true;
+      svgEl('polygon', { points: ptsAttr(movePts(pb, 1, 750, 300)), style: 'fill:none;stroke:var(--truth);stroke-width:3;stroke-dasharray:10 8' }, svg);
+      return { score: scoreExp(Math.abs(Math.log(ratio)), 0.15), text: `내 도형 넓이는 정답의 ${Math.round(ratio * 100)}%입니다. 점선이 정답 크기입니다.` };
+    }
+  };
+}
+
+/* 평행선 */
+const HL = ['#ffe14d', '#ff7eb6', '#7ae89c', '#7cc8ff', '#ffb36b', '#c59bff'];
+function testParallel(stage, ready) {
+  const W = 1000, H = 700;
+  let ang, P1, P2, anchor, dir;
+  for (let guard = 0; guard < 5000; guard++) {
+    ang = rand(0, 180);
+    if (nearAny(ang, [0, 45, 90, 135, 180], 7)) continue;
+    const L = rand(220, 320), c = [rand(200, 800), rand(150, 550)];
+    dir = [Math.cos(rad(ang)), Math.sin(rad(ang))];
+    P1 = [c[0] - dir[0] * L / 2, c[1] - dir[1] * L / 2]; P2 = [c[0] + dir[0] * L / 2, c[1] + dir[1] * L / 2];
+    if (![P1, P2].every(p => inBox(p, 60, 60, 940, 640))) continue;
+    let ok = false;
+    for (let k = 0; k < 80; k++) {
+      anchor = [rand(130, 870), rand(130, 570)];
+      const perp = Math.abs((anchor[0] - c[0]) * dir[1] - (anchor[1] - c[1]) * dir[0]);
+      if (perp > 190 && Math.hypot(anchor[0] - c[0], anchor[1] - c[1]) > 300) { ok = true; break; }
+    }
+    if (ok) break;
+  }
+  const svg = makeSVG(W, H, true); stage.append(svg);
+  const dg = svgEl('g', { style: 'stroke-linecap:round;opacity:.45;fill:none' }, svg);
+  const nD = ri(13, 18);
+  for (let i = 0; i < nD; i++) {
+    const a = rad(RNG() < 0.7 ? ang + sgn() * rand(6, 30) : rand(0, 180));
+    const len = rand(50, 160), cx = rand(40, 960), cy = rand(40, 660);
+    svgEl('line', {
+      x1: cx - Math.cos(a) * len / 2, y1: cy - Math.sin(a) * len / 2, x2: cx + Math.cos(a) * len / 2, y2: cy + Math.sin(a) * len / 2,
+      stroke: pick(HL), 'stroke-width': rand(18, 30).toFixed(0)
+    }, dg);
+  }
+  ln(svg, P1, P2, 'stroke:var(--fg);stroke-width:5;stroke-linecap:round');
+  const ug = svgEl('g', {}, svg);
+  svgEl('circle', { cx: anchor[0], cy: anchor[1], r: 10, style: 'fill:var(--accent)' }, svg);
+  let end = null;
+  const d = onDrag(svg, {
+    move: p => {
+      end = [clamp(p[0], 0, W), clamp(p[1], 0, H)];
+      ug.replaceChildren();
+      ln(ug, anchor, end, 'stroke:var(--accent);stroke-width:4;stroke-linecap:round');
+      svgEl('circle', { cx: end[0], cy: end[1], r: 6, style: 'fill:var(--accent)' }, ug);
+    },
+    up: () => ready(end && Math.hypot(end[0] - anchor[0], end[1] - anchor[1]) >= 120)
+  });
+  return {
+    instr: '파란 점에서 시작하는 선을 검은 선과 평행하게 그으세요. 화면 아무 곳이나 드래그하면 선 끝이 따라옵니다. 형광펜 자국은 방해물이니 무시하세요.',
+    submit() {
+      d.lock();
+      let ua = deg(Math.atan2(end[1] - anchor[1], end[0] - anchor[0]));
+      ua = ((ua % 180) + 180) % 180;
+      const df = Math.abs(ua - ang), err = Math.min(df, 180 - df);
+      ln(svg, [anchor[0] - dir[0] * 1300, anchor[1] - dir[1] * 1300], [anchor[0] + dir[0] * 1300, anchor[1] + dir[1] * 1300], DASH);
+      return { score: scoreExp(err, 3), text: `각도 오차 ${err.toFixed(1)}°. 점선이 정확한 평행선입니다.` };
+    }
+  };
+}
+
+/* 원 그리기 */
+function fitCircle(pts) {
+  const n = pts.length;
+  const mx = pts.reduce((s, p) => s + p[0], 0) / n, my = pts.reduce((s, p) => s + p[1], 0) / n;
+  let sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0, sxz = 0, syz = 0, sz = 0;
+  for (const p of pts) {
+    const x = p[0] - mx, y = p[1] - my, z = x * x + y * y;
+    sx += x; sy += y; sxx += x * x; syy += y * y; sxy += x * y; sxz += x * z; syz += y * z; sz += z;
+  }
+  const M = [[sxx, sxy, sx], [sxy, syy, sy], [sx, sy, n]], v = [-sxz, -syz, -sz];
+  const det3 = m => m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]) - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]) + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]);
+  const D = det3(M);
+  if (Math.abs(D) < 1e-9) return null;
+  const sol = [0, 1, 2].map(i => det3(M.map((row, r) => row.map((c, j) => (j === i ? v[r] : c)))) / D);
+  const cx = -sol[0] / 2, cy = -sol[1] / 2, r2 = cx * cx + cy * cy - sol[2];
+  if (!(r2 > 0)) return null;
+  return [cx + mx, cy + my, Math.sqrt(r2)];
+}
+function testCircle(stage, ready) {
+  const W = 1000, H = 1000;
+  const svg = makeSVG(W, H, true); stage.append(svg);
+  const path = svgEl('polyline', { style: 'fill:none;stroke:var(--accent);stroke-width:5;stroke-linecap:round;stroke-linejoin:round' }, svg);
+  const hint = el('p', { class: 'hint', text: '한 번에 크게 한 바퀴를 그리세요.' });
+  stage.append(hint);
+  let pts = [], res = null;
+  function evalCircle() {
+    if (pts.length < 20) return null;
+    const f = fitCircle(pts); if (!f) return null;
+    const [cx, cy, R] = f;
+    const rs = pts.map(p => Math.hypot(p[0] - cx, p[1] - cy));
+    const dev = Math.sqrt(rs.reduce((s, r) => s + (r - R) ** 2, 0) / rs.length) / R;
+    const angs = pts.map(p => (deg(Math.atan2(p[1] - cy, p[0] - cx)) + 360) % 360).sort((a, b) => a - b);
+    let gap = 360 - angs[angs.length - 1] + angs[0];
+    for (let i = 1; i < angs.length; i++) gap = Math.max(gap, angs[i] - angs[i - 1]);
+    return { cx, cy, R, dev, gap };
+  }
+  const d = onDrag(svg, {
+    down: p => { pts = [p]; path.setAttribute('points', ptsAttr(pts)); ready(false); },
+    move: p => { const l = pts[pts.length - 1]; if (Math.hypot(p[0] - l[0], p[1] - l[1]) > 3) { pts.push(p); path.setAttribute('points', ptsAttr(pts)); } },
+    up: () => {
+      res = evalCircle();
+      let ok = true;
+      if (!res) { ok = false; hint.textContent = '선이 너무 짧습니다. 한 바퀴를 그려주세요.'; }
+      else if (res.R < 100) { ok = false; hint.textContent = '조금 더 크게 그려주세요.'; }
+      else if (res.gap > 50) { ok = false; hint.textContent = '원이 닫히지 않았습니다. 한 바퀴를 다 그려주세요.'; }
+      else hint.textContent = '좋습니다. 다시 그리려면 새로 그으면 됩니다.';
+      ready(ok);
+    }
+  });
+  return {
+    instr: '화면에 손이나 마우스로 최대한 완벽한 원을 한 번에 그리세요. 마음에 들 때까지 다시 그려도 됩니다.',
+    submit() {
+      d.lock();
+      svgEl('circle', { cx: res.cx, cy: res.cy, r: res.R, style: DASH }, svg);
+      const score = Math.round(scoreExp(res.dev, 0.05) * Math.exp(-Math.max(0, res.gap - 30) / 60));
+      return { score, text: `반지름 대비 평균 편차 ${(res.dev * 100).toFixed(1)}%. 점선이 가장 가까운 완전한 원입니다.` };
+    }
+  };
+}
+
+/* 길이 복사 */
+function testLength(stage, ready) {
+  const W = 1000, H = 700;
+  let S = null;
+  for (let t = 0; t < 3000 && !S; t++) {
+    const L = rand(180, 340), a1 = rand(0, 180), c1 = [rand(150, 850), rand(120, 580)];
+    const d1 = [Math.cos(rad(a1)), Math.sin(rad(a1))];
+    const P1 = [c1[0] - d1[0] * L / 2, c1[1] - d1[1] * L / 2], P2 = [c1[0] + d1[0] * L / 2, c1[1] + d1[1] * L / 2];
+    if (![P1, P2].every(p => inBox(p, 40, 40, 960, 660))) continue;
+    const a2 = a1 + sgn() * rand(30, 150) + (RNG() < 0.5 ? 180 : 0);
+    const d2 = [Math.cos(rad(a2)), Math.sin(rad(a2))];
+    const A = [rand(80, 920), rand(80, 620)], far = [A[0] + d2[0] * L * 1.7, A[1] + d2[1] * L * 1.7];
+    if (!inBox(far, 20, 20, 980, 680)) continue;
+    let near = false;
+    for (let k = 0; k <= 10; k++) {
+      const q = [A[0] + d2[0] * L * 1.7 * k / 10, A[1] + d2[1] * L * 1.7 * k / 10];
+      for (let j = 0; j <= 10; j++) { const r = [P1[0] + (P2[0] - P1[0]) * j / 10, P1[1] + (P2[1] - P1[1]) * j / 10]; if (Math.hypot(q[0] - r[0], q[1] - r[1]) < 90) near = true; }
+    }
+    if (near) continue;
+    S = { L, P1, P2, A, d2 };
+  }
+  const svg = makeSVG(W, H, true); stage.append(svg);
+  ln(svg, S.P1, S.P2, 'stroke:var(--fg);stroke-width:5;stroke-linecap:round');
+  const maxT = S.L * 1.7;
+  ln(svg, S.A, [S.A[0] + S.d2[0] * maxT, S.A[1] + S.d2[1] * maxT], 'stroke:var(--muted);stroke-width:2;stroke-dasharray:3 9');
+  const ug = svgEl('g', {}, svg);
+  svgEl('circle', { cx: S.A[0], cy: S.A[1], r: 10, style: 'fill:var(--accent)' }, svg);
+  let tU = 0;
+  const d = onDrag(svg, {
+    move: p => {
+      tU = clamp((p[0] - S.A[0]) * S.d2[0] + (p[1] - S.A[1]) * S.d2[1], 0, maxT);
+      ug.replaceChildren();
+      ln(ug, S.A, [S.A[0] + S.d2[0] * tU, S.A[1] + S.d2[1] * tU], 'stroke:var(--accent);stroke-width:5;stroke-linecap:round');
+    },
+    up: () => ready(tU > 10)
+  });
+  return {
+    instr: '파란 점에서 점선 방향으로, 검은 선과 같은 길이의 선을 드래그해서 만드세요.',
+    submit() {
+      d.lock();
+      const E = [S.A[0] + S.d2[0] * S.L, S.A[1] + S.d2[1] * S.L], nv = [-S.d2[1], S.d2[0]];
+      ln(svg, [E[0] - nv[0] * 24, E[1] - nv[1] * 24], [E[0] + nv[0] * 24, E[1] + nv[1] * 24], 'stroke:var(--truth);stroke-width:4');
+      const e = Math.abs(tU - S.L) / S.L;
+      return { score: scoreExp(e, 0.05), text: `내 선 길이는 정답의 ${Math.round(tU / S.L * 100)}%입니다. 분홍 눈금이 정답 끝입니다.` };
+    }
+  };
+}
+
+/* 각도 만들기 */
+function testAngle(stage, ready) {
+  const W = 1000, H = 700;
+  let th; do { th = ri(12, 168); } while (nearAny(th, [45, 90, 135], 6));
+  const V = [500 + rand(-60, 60), 380 + rand(-30, 30)], beta = rand(0, 360), Lr = 250;
+  const P = a => [V[0] + Lr * Math.cos(rad(a)), V[1] + Lr * Math.sin(rad(a))];
+  const svg = makeSVG(W, H, true); stage.append(svg);
+  svgText(svg, 30, 80, `${th}°`, 'fill:var(--fg);font-size:64px;font-weight:700');
+  ln(svg, V, P(beta), 'stroke:var(--fg);stroke-width:5;stroke-linecap:round');
+  const ug = svgEl('g', {}, svg);
+  svgEl('circle', { cx: V[0], cy: V[1], r: 8, style: 'fill:var(--fg)' }, svg);
+  let gam = null, cur = 0, sideSign = 1;
+  const d = onDrag(svg, {
+    move: p => {
+      if (Math.hypot(p[0] - V[0], p[1] - V[1]) < 10) return;
+      gam = deg(Math.atan2(p[1] - V[1], p[0] - V[0]));
+      const delta = ((gam - beta + 540) % 360) - 180;
+      cur = Math.abs(delta); sideSign = delta >= 0 ? 1 : -1;
+      ug.replaceChildren();
+      const r = 70, a0 = [V[0] + r * Math.cos(rad(beta)), V[1] + r * Math.sin(rad(beta))], a1 = [V[0] + r * Math.cos(rad(gam)), V[1] + r * Math.sin(rad(gam))];
+      svgEl('path', { d: `M${a0[0]},${a0[1]} A${r},${r} 0 0 ${delta > 0 ? 1 : 0} ${a1[0]},${a1[1]}`, style: 'fill:none;stroke:var(--muted);stroke-width:2.5' }, ug);
+      ln(ug, V, P(gam), 'stroke:var(--accent);stroke-width:5;stroke-linecap:round');
+      ready(true);
+    }
+  });
+  return {
+    instr: `검은 선과 ${th}°를 이루도록 파란 선을 돌리세요. 꼭짓점 주변을 드래그하면 선이 따라옵니다.`,
+    submit() {
+      d.lock();
+      ln(svg, V, P(beta + sideSign * th), DASH);
+      const err = Math.abs(cur - th);
+      return { score: scoreExp(err, 4), text: `내 각도는 ${cur.toFixed(0)}°, 오차 ${err.toFixed(1)}°입니다. 점선이 정답입니다.` };
+    }
+  };
+}
+
+/* 대칭축 */
+function testSym(stage, ready) {
+  const R = rand(240, 320), m = ri(7, 10);
+  const ys = Array.from({ length: m }, (_, i) => -R + 2 * R * i / (m - 1));
+  const raw = ys.map(() => rand(0.12, 0.62) * R);
+  const ws = raw.map((w, i) => (i === 0 || i === m - 1) ? w : (raw[i - 1] + 2 * w + raw[i + 1]) / 4);
+  const right = ys.map((y, i) => [ws[i], y]), left = right.map(([x, y]) => [-x, y]).reverse();
+  let al; do { al = rand(0, 180); } while (nearAny(al, [0, 45, 90, 135, 180], 8));
+  const C = [500 + rand(-50, 50), 500 + rand(-50, 50)];
+  const pts = rotPts([...right, ...left], rad(al)).map(([x, y]) => [x + C[0], y + C[1]]);
+  const ax = [-Math.sin(rad(al)), Math.cos(rad(al))];
+  const svg = makeSVG(1000, 1000, true); stage.append(svg);
+  svgEl('polygon', { points: ptsAttr(pts), style: 'fill:var(--shape)' }, svg);
+  const ld = lineDrawer(svg, ready);
+  return {
+    instr: '좌우 대칭인 도형이 돌아가 있습니다. 대칭축이 되는 직선을 드래그로 그으세요. 마음에 들 때까지 다시 그어도 됩니다.',
+    submit() {
+      ld.lock();
+      const [a, b] = ld.get();
+      const E1 = [C[0] + ax[0] * R, C[1] + ax[1] * R], E2 = [C[0] - ax[0] * R, C[1] - ax[1] * R];
+      const e = (distLine(E1, a, b) + distLine(E2, a, b)) / 2;
+      ln(svg, [C[0] - ax[0] * 1500, C[1] - ax[1] * 1500], [C[0] + ax[0] * 1500, C[1] + ax[1] * 1500], DASH);
+      return { score: scoreExp(e, 12), text: `도형 양 끝에서 정답 축까지의 평균 거리 ${e.toFixed(0)}. 점선이 정답입니다.` };
+    }
+  };
+}
+
+/* 곡선 잇기 / 포겐도르프 */
+function testOcclude(stage, ready, type) {
+  const W = 1000, H = 700;
+  let S = null;
+  for (let t = 0; t < 3000 && !S; t++) {
+    const x1 = rand(380, 470), x2 = x1 + rand(150, 230), ye = rand(140, 560), vis = rand(220, 300);
+    if (type === 'line') {
+      const sl = Math.tan(rad(sgn() * rand(20, 42)));
+      const y0 = ye - sl * vis, yx = ye + sl * (x2 - x1);
+      if (y0 < 30 || y0 > 670 || yx < 60 || yx > 640) continue;
+      S = { x1, x2, vis: [[x1 - vis, y0], [x1, ye]], yx, sl, truth: [[x1, ye], [x2 + 260, ye + sl * (x2 + 260 - x1)]] };
+    } else {
+      const th = rad(rand(-40, 40)), R = rand(280, 650), sg = sgn();
+      const tv = [Math.cos(th), Math.sin(th)], nv = [-tv[1] * sg, tv[0] * sg], C = [x1 + R * nv[0], ye + R * nv[1]];
+      const P = f => [C[0] - R * nv[0] * Math.cos(f) + R * tv[0] * Math.sin(f), C[1] - R * nv[1] * Math.cos(f) + R * tv[1] * Math.sin(f)];
+      const dx = f => nv[0] * Math.sin(f) + tv[0] * Math.cos(f);
+      const vs = []; let ok = true;
+      for (let f = -vis / R; f < 0; f += 0.01) { if (dx(f) < 0.2) { ok = false; break; } vs.push(P(f)); }
+      if (!ok) continue;
+      vs.push(P(0));
+      let fe = null; const tr = [];
+      for (let f = 0; f < Math.PI / 2; f += 0.003) { if (dx(f) < 0.25) break; const p = P(f); tr.push(p); if (p[0] >= x2) { fe = f; break; } }
+      if (fe == null) continue;
+      const yx = P(fe)[1];
+      for (let f = fe; f < fe + 250 / R && dx(f) > 0.1; f += 0.01) tr.push(P(f));
+      if (vs.some(p => p[1] < 30 || p[1] > 670) || yx < 60 || yx > 640) continue;
+      S = { x1, x2, vis: vs, yx, truth: tr };
+    }
+  }
+  const svg = makeSVG(W, H, true); stage.append(svg);
+  svgEl('polyline', { points: ptsAttr(S.vis), style: 'fill:none;stroke:var(--fg);stroke-width:5;stroke-linejoin:round' }, svg);
+  svgEl('rect', { x: S.x1, y: 0, width: S.x2 - S.x1, height: H, style: 'fill:var(--shape)' }, svg);
+  const ug = svgEl('g', {}, svg);
+  let yU = null;
+  const d = onDrag(svg, {
+    move: p => {
+      yU = clamp(p[1], 10, H - 10);
+      ug.replaceChildren();
+      if (type === 'line') ln(ug, [S.x2, yU], [S.x2 + 260, yU + S.sl * 260], 'stroke:var(--accent);stroke-width:5');
+      else { ln(ug, [S.x2, yU], [S.x2 + 34, yU], 'stroke:var(--accent);stroke-width:5'); svgEl('circle', { cx: S.x2, cy: yU, r: 9, style: 'fill:var(--accent)' }, ug); }
+      ready(true);
+    }
+  });
+  return {
+    instr: type === 'line'
+      ? '검은 직선이 회색 막대 뒤를 지나갑니다. 막대 오른쪽으로 이어지는 파란 선의 위치를 위아래로 드래그해서 맞추세요.'
+      : '검은 곡선이 회색 막대 뒤로 이어집니다. 곡선이 막대 오른쪽 가장자리에서 다시 나오는 지점을 위아래로 드래그해서 맞추세요.',
+    submit() {
+      d.lock();
+      svgEl('polyline', { points: ptsAttr(S.truth), style: DASH }, svg);
+      const err = Math.abs(yU - S.yx);
+      return { score: scoreExp(err, type === 'line' ? 10 : 14), text: `세로 오차 ${err.toFixed(0)}. 분홍 점선이 실제 경로입니다.` };
+    }
+  };
+}
+
+/* 회전 원위치 */
+function testRotate(stage, ready) {
+  const W = 1000, H = 500;
+  const base = shapePts('blob', Math.PI * 85 * 85);
+  let cur; do { cur = rand(0, 360); } while (hueDiff(cur, 0) < 40);
+  const svg = makeSVG(W, H, true); stage.append(svg);
+  svgEl('polygon', { points: ptsAttr(movePts(base, 1, 250, 250)), style: 'fill:var(--shape)' }, svg);
+  const g = svgEl('g', {}, svg);
+  svgEl('polygon', { points: ptsAttr(base), style: 'fill:var(--accent);opacity:.85' }, g);
+  svgEl('circle', { cx: 0, cy: 0, r: 5, style: 'fill:var(--fg)' }, g);
+  const C = [750, 250];
+  const draw = () => g.setAttribute('transform', `translate(${C[0]},${C[1]}) rotate(${cur})`);
+  draw();
+  let a0 = 0, c0 = 0;
+  const ang = p => deg(Math.atan2(p[1] - C[1], p[0] - C[0]));
+  const d = onDrag(svg, {
+    down: p => { a0 = ang(p); c0 = cur; },
+    move: p => { cur = c0 + (ang(p) - a0); draw(); }
+  });
+  ready(true);
+  return {
+    instr: '오른쪽 파란 도형을 드래그로 돌려서 왼쪽 회색 도형과 같은 방향이 되게 하세요.',
+    submit() {
+      d.lock();
+      svgEl('polygon', { points: ptsAttr(movePts(base, 1, C[0], C[1])), style: DASH }, svg);
+      const err = hueDiff(cur, 0);
+      return { score: scoreExp(err, 5), text: `회전 오차 ${err.toFixed(1)}°. 점선이 정답 방향입니다.` };
+    }
+  };
+}
+
+/* =========================================================
+   착시
+   ========================================================= */
+
+/* 뮐러-라이어 */
+function testMuller(stage, ready) {
+  const W = 1000, H = 520, f = 46, fa = rad(35);
+  const Lf = rand(260, 380);
+  const fixedType = pick(['in', 'out']), adjType = fixedType === 'in' ? 'out' : 'in';
+  const topAdj = RNG() < 0.5;
+  const yF = topAdj ? 350 : 170, yA = topAdj ? 170 : 350;
+  let cxF, cxA; do { cxF = 500 + rand(-90, 90); cxA = 500 + rand(-90, 90); } while (Math.abs(cxF - cxA) < 40);
+  let fct; do { fct = rand(0.7, 1.35); } while (fct > 0.88 && fct < 1.12);
+  let L = Lf * fct;
+  const svg = makeSVG(W, H, true); stage.append(svg);
+  const st = 'stroke:var(--fg);stroke-width:4;stroke-linecap:round;fill:none';
+  function fig(g, cx, y, len, type, style) {
+    const xl = cx - len / 2, xr = cx + len / 2, s = type === 'out' ? -1 : 1, fx = Math.cos(fa) * f, fy = Math.sin(fa) * f;
+    ln(g, [xl, y], [xr, y], style);
+    ln(g, [xl, y], [xl + s * fx, y - fy], style); ln(g, [xl, y], [xl + s * fx, y + fy], style);
+    ln(g, [xr, y], [xr - s * fx, y - fy], style); ln(g, [xr, y], [xr - s * fx, y + fy], style);
+  }
+  fig(svg, cxF, yF, Lf, fixedType, st);
+  const ag = svgEl('g', {}, svg);
+  const draw = () => { ag.replaceChildren(); fig(ag, cxA, yA, L, adjType, st.replace('var(--fg)', 'var(--accent)')); };
+  draw();
+  const d = onDrag(svg, { move: p => { L = clamp(2 * Math.abs(p[0] - cxA), 60, 900); draw(); } });
+  ready(true);
+  return {
+    instr: '파란 도형의 가운데 가로선 길이가 검은 도형의 가로선과 같아지도록 좌우로 드래그하세요. 양 끝의 꺾쇠는 길이에 포함하지 않습니다.',
+    submit() {
+      d.lock();
+      ln(svg, [cxA - Lf / 2, yA + 34], [cxA + Lf / 2, yA + 34], 'stroke:var(--truth);stroke-width:4');
+      for (const x of [cxA - Lf / 2, cxA + Lf / 2]) ln(svg, [x, yA + 22], [x, yA + 46], 'stroke:var(--truth);stroke-width:4');
+      const r = L / Lf;
+      return { score: scoreExp(Math.abs(Math.log(r)), 0.05), text: `내 선 길이는 정답의 ${Math.round(r * 100)}%입니다. 분홍 선이 정답 길이입니다.` };
+    }
+  };
+}
+
+/* 에빙하우스 */
+function testEbb(stage, ready) {
+  const W = 1000, H = 500, rF = rand(32, 42);
+  const fixedLeft = RNG() < 0.5, fixedBig = RNG() < 0.5;
+  const cF = [fixedLeft ? 250 : 750, 250], cA = [fixedLeft ? 750 : 250, 250];
+  const ring = (c, big) => {
+    const n = big ? 6 : 8, r = big ? 56 : 13, D = big ? rF + 26 + 56 : rF * 1.6 + 13;
+    return { n, r, D, c, maxIn: D - r - 4 };
+  };
+  const rgF = ring(cF, fixedBig), rgA = ring(cA, !fixedBig);
+  const svg = makeSVG(W, H, true); stage.append(svg);
+  for (const rg of [rgF, rgA]) for (let k = 0; k < rg.n; k++) {
+    const a = k * TAU / rg.n;
+    svgEl('circle', { cx: rg.c[0] + rg.D * Math.cos(a), cy: rg.c[1] + rg.D * Math.sin(a), r: rg.r, style: 'fill:var(--shape)' }, svg);
+  }
+  svgEl('circle', { cx: cF[0], cy: cF[1], r: rF, fill: '#e8823a' }, svg);
+  let fct; do { fct = rand(0.65, 1.4); } while (fct > 0.85 && fct < 1.15);
+  let r = clamp(rF * fct, 8, rgA.maxIn);
+  const adj = svgEl('circle', { cx: cA[0], cy: cA[1], r, fill: '#e8823a' }, svg);
+  const d = onDrag(svg, { move: p => { r = clamp(Math.hypot(p[0] - cA[0], p[1] - cA[1]), 8, rgA.maxIn); adj.setAttribute('r', r); } });
+  ready(true);
+  return {
+    instr: `${fixedLeft ? '오른쪽' : '왼쪽'} 가운데 주황 원의 크기를 반대쪽 주황 원과 같게 맞추세요. 그 원의 중심에서 바깥쪽으로 드래그하면 크기가 바뀝니다.`,
+    submit() {
+      d.lock();
+      svgEl('circle', { cx: cA[0], cy: cA[1], r: rF, style: DASH }, svg);
+      const q = r / rF;
+      return { score: scoreExp(Math.abs(Math.log(q)), 0.05), text: `내 원 지름은 정답의 ${Math.round(q * 100)}%입니다. 점선이 정답 크기입니다.` };
+    }
+  };
+}
+
+/* 체커 그림자 */
+function testChecker(stage, ready) {
+  const W = 1000, H = 700, N = 6, T = 95, x0 = 30, y0 = 65;
+  const lightS = rand(0.74, 0.82), darkS = rand(0.38, 0.46);
+  const Sx = x0 + rand(2, 4) * T, Sy = y0 + rand(2, 4) * T, Rs = rand(160, 230), k = rand(0.45, 0.62);
+  const sm = (e0, e1, x) => { const t = clamp01((x - e0) / (e1 - e0)); return t * t * (3 - 2 * t); };
+  const tiles = [];
+  for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+    const light = (i + j) % 2 === 0, cx = x0 + (i + 0.5) * T, cy = y0 + (j + 0.5) * T;
+    const fsh = 1 - k * (1 - sm(Rs * 0.35, Rs, Math.hypot(cx - Sx, cy - Sy)));
+    tiles.push({ i, j, light, fsh, v: l2s(s2l(light ? lightS : darkS) * fsh) });
+  }
+  const cands = tiles.filter(t => t.light && t.fsh < 0.8);
+  const tgt = cands.length ? pick(cands) : tiles.filter(t => t.light).sort((a, b) => a.fsh - b.fsh)[0];
+  const svg = makeSVG(W, H, false); stage.append(svg);
+  for (const t of tiles) svgEl('rect', { x: x0 + t.i * T, y: y0 + t.j * T, width: T + 0.5, height: T + 0.5, fill: css(gray(t.v)) }, svg);
+  const id = 'ball' + (++gid);
+  const defs = svgEl('defs', {}, svg);
+  const rg = svgEl('radialGradient', { id, cx: '35%', cy: '30%', r: '70%' }, defs);
+  svgEl('stop', { offset: '0%', 'stop-color': '#f0f0f4' }, rg);
+  svgEl('stop', { offset: '100%', 'stop-color': '#4a4e5c' }, rg);
+  svgEl('circle', { cx: Sx - Rs * 0.35, cy: Sy - Rs * 0.45, r: Rs * 0.36, fill: `url(#${id})` }, svg);
+  svgEl('rect', { x: x0 + tgt.i * T + 3, y: y0 + tgt.j * T + 3, width: T - 6, height: T - 6, style: 'fill:none;stroke:var(--accent);stroke-width:5' }, svg);
+  const lo = rand(0, 0.1), hi = rand(0.9, 1);
+  let v0; do { v0 = RNG(); } while (Math.abs(lo + v0 * (hi - lo) - tgt.v) < 0.12);
+  svgText(svg, 690, 210, '내 답');
+  const sw = svgEl('rect', { x: 690, y: 230, width: 250, height: 250 }, svg);
+  const sl = slider('회색 밝기', v0);
+  const val = () => lo + sl.get() * (hi - lo);
+  const draw = () => sw.setAttribute('fill', css(gray(val())));
+  sl.input.addEventListener('input', draw); draw();
+  stage.append(sl.wrap);
+  ready(true);
+  return {
+    instr: '파란 테두리 칸의 실제 회색 밝기와 같아지도록 오른쪽 "내 답" 칸을 슬라이더로 맞추세요. 그림자 때문에 보이는 밝기에 속지 마세요.',
+    submit() {
+      sl.input.disabled = true;
+      svgEl('rect', { x: 815, y: 230, width: 125, height: 250, fill: css(gray(tgt.v)) }, svg);
+      svgText(svg, 820, 515, '정답');
+      const e = Math.abs(okL(gray(val())) - okL(gray(tgt.v)));
+      return { score: scoreExp(e, 0.025), text: `밝기 차이 ΔL ${(e * 100).toFixed(1)}. 오른쪽 절반이 실제 칸의 회색입니다.` };
+    }
+  };
+}
+
+/* =========================================================
+   색
+   ========================================================= */
+
+/* color picker (hue ring + triangle) */
+function makePicker(o) {
+  const U = 300, C = 150, RO = 147, RI = 119, RT = 113;
+  const V = [[C + RT, C], [C + RT * Math.cos(4 * Math.PI / 3), C + RT * Math.sin(4 * Math.PI / 3)], [C + RT * Math.cos(2 * Math.PI / 3), C + RT * Math.sin(2 * Math.PI / 3)]];
+  const dpr = Math.min(2, window.devicePixelRatio || 1), N = Math.round(U * dpr);
+  let hue = o.hue, w = o.bary.slice(), off = o.offset, locked = false, truthHue = null, mode = null;
+  const cv = el('canvas', { class: 'picker', width: N, height: N, 'aria-label': '색상 선택기' });
+  const ctx = cv.getContext('2d');
+  const ring = document.createElement('canvas'); ring.width = ring.height = N;
+  const rc = ring.getContext('2d'); rc.scale(dpr, dpr);
+  for (let d = 0; d < 360; d++) {
+    const a0 = rad(d), a1 = rad(d + 1.6);
+    rc.beginPath(); rc.arc(C, C, RO, a0, a1); rc.arc(C, C, RI, a1, a0, true); rc.closePath();
+    rc.fillStyle = css(hsv2rgb(d + off, 1, 1)); rc.fill();
+  }
+  const tri = document.createElement('canvas'); tri.width = tri.height = N;
+  const tc = tri.getContext('2d');
+  function bary(p) {
+    const [A, B, Cc] = V;
+    const v0 = [B[0] - A[0], B[1] - A[1]], v1 = [Cc[0] - A[0], Cc[1] - A[1]], v2 = [p[0] - A[0], p[1] - A[1]];
+    const d00 = v0[0] * v0[0] + v0[1] * v0[1], d01 = v0[0] * v1[0] + v0[1] * v1[1], d11 = v1[0] * v1[0] + v1[1] * v1[1];
+    const d20 = v2[0] * v0[0] + v2[1] * v0[1], d21 = v2[0] * v1[0] + v2[1] * v1[1], den = d00 * d11 - d01 * d01;
+    const b = (d11 * d20 - d01 * d21) / den, c = (d00 * d21 - d01 * d20) / den;
+    return [1 - b - c, b, c];
+  }
+  function clampTri(p) {
+    let bc = bary(p);
+    if (bc.every(x => x >= 0)) return bc;
+    let best = null, bd = Infinity;
+    for (const [P, Q] of [[V[0], V[1]], [V[1], V[2]], [V[2], V[0]]]) {
+      const dx = Q[0] - P[0], dy = Q[1] - P[1];
+      const t = clamp01(((p[0] - P[0]) * dx + (p[1] - P[1]) * dy) / (dx * dx + dy * dy));
+      const qq = [P[0] + t * dx, P[1] + t * dy], dd = Math.hypot(p[0] - qq[0], p[1] - qq[1]);
+      if (dd < bd) { bd = dd; best = qq; }
+    }
+    bc = bary(best).map(x => Math.max(0, x));
+    const s = bc[0] + bc[1] + bc[2];
+    return bc.map(x => x / s);
+  }
+  function drawTri() {
+    const img = tc.createImageData(N, N), H = hsv2rgb(hue, 1, 1), dt = img.data;
+    const x0 = Math.floor(V[1][0] * dpr) - 1, x1 = Math.ceil(V[0][0] * dpr) + 1, y0 = Math.floor(V[1][1] * dpr) - 1, y1 = Math.ceil(V[2][1] * dpr) + 1;
+    for (let py = y0; py <= y1; py++) for (let px = x0; px <= x1; px++) {
+      const [u, v, ww] = bary([(px + 0.5) / dpr, (py + 0.5) / dpr]);
+      const mn = Math.min(u, v, ww);
+      if (mn < -0.006) continue;
+      const i = (py * N + px) * 4;
+      dt[i] = Math.round(clamp01(u * H[0] + v) * 255);
+      dt[i + 1] = Math.round(clamp01(u * H[1] + v) * 255);
+      dt[i + 2] = Math.round(clamp01(u * H[2] + v) * 255);
+      dt[i + 3] = mn >= 0 ? 255 : Math.round(255 * (1 + mn / 0.006));
+    }
+    tc.putImageData(img, 0, 0);
+  }
+  function ring2(x, y, r, inner, outer, lw) {
+    ctx.lineWidth = lw + 2; ctx.strokeStyle = outer; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.stroke();
+    ctx.lineWidth = lw; ctx.strokeStyle = inner; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.stroke();
+  }
+  function render() {
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, N, N);
+    ctx.drawImage(ring, 0, 0); ctx.drawImage(tri, 0, 0);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const rm = (RO + RI) / 2;
+    if (truthHue != null) {
+      const ta = rad(truthHue - off);
+      ring2(C + rm * Math.cos(ta), C + rm * Math.sin(ta), 13, '#e0115f', '#fff', 3);
+    }
+    const a = rad(hue - off);
+    ring2(C + rm * Math.cos(a), C + rm * Math.sin(a), 9, '#fff', '#000', 2.5);
+    const p = [0, 1].map(k => w[0] * V[0][k] + w[1] * V[1][k] + w[2] * V[2][k]);
+    ring2(p[0], p[1], 6.5, '#fff', '#000', 2);
+  }
+  const pos = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * U / r.width, (e.clientY - r.top) * U / r.height]; };
+  function apply(p) {
+    if (mode === 'ring') {
+      hue = ((deg(Math.atan2(p[1] - C, p[0] - C)) + off) % 360 + 360) % 360;
+      drawTri();
+    } else w = clampTri(p);
+    render();
+    if (o.onChange) o.onChange();
+  }
+  cv.addEventListener('pointerdown', e => {
+    if (locked) return;
+    e.preventDefault();
+    const p = pos(e), dist = Math.hypot(p[0] - C, p[1] - C);
+    mode = (!o.tri || dist > RI - 4) ? 'ring' : 'tri';
+    try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+    apply(p);
+  });
+  cv.addEventListener('pointermove', e => { if (mode && !locked) apply(pos(e)); });
+  const stop = () => { mode = null; };
+  cv.addEventListener('pointerup', stop); cv.addEventListener('pointercancel', stop);
+  drawTri(); render();
+  return {
+    el: cv,
+    rgb() { const H = hsv2rgb(hue, 1, 1); return H.map(c => clamp01(c * w[0] + w[1])); },
+    hue: () => hue,
+    lock() { locked = true; },
+    showTruth(h) { truthHue = h; render(); }
+  };
+}
+function pickerWithPreview(opts) {
+  const prev = el('div', { class: 'sw sm' });
+  const pk = makePicker(Object.assign({ hue: rand(0, 360), bary: [0.34, 0.33, 0.33], offset: rand(0, 360), tri: true }, opts, { onChange: () => { prev.style.background = css(pk.rgb()); } }));
+  prev.style.background = css(pk.rgb());
+  return { pk, row: el('div', { class: 'cols' }, pk.el, el('div', { class: 'swbox' }, prev, el('span', { text: '내 선택' }))) };
+}
+
+/* 색상환 / 보색 */
+function testHue(stage, ready, comp) {
+  const th = rand(0, 360), a = rand(0.45, 0.92), b = rand(0, 1 - a) * RNG(), c = 1 - a - b;
+  const target = hsv2rgb(th, 1, 1).map(x => x * a + b);
+  const ansH = comp ? (th + 180) % 360 : th;
+  const ans = hsv2rgb(ansH, 1, 1).map(x => x * a + b);
+  let h0; do { h0 = rand(0, 360); } while (hueDiff(h0, ansH) < 60 || (comp && hueDiff(h0, th) < 30));
+  const pk = makePicker({ hue: h0, bary: [a, b, c], offset: rand(0, 360), tri: false });
+  stage.append(el('div', { class: 'cols' }, swatch(target, comp ? '주어진 색' : '목표 색'), pk.el));
+  ready(true);
+  return {
+    instr: comp
+      ? '주어진 색의 보색(색상환에서 정반대 색)이 되도록 바깥 고리만 돌리세요. 안쪽 삼각형의 점 위치는 고정되어 있습니다.'
+      : '목표 색과 같아지도록 바깥 고리만 돌려 색상(Hue)을 맞추세요. 안쪽 삼각형의 점 위치는 고정되어 있습니다.',
+    submit() {
+      pk.lock(); pk.showTruth(ansH);
+      const mine = pk.rgb(), d = dE(ans, mine), he = hueDiff(pk.hue(), ansH);
+      return {
+        score: scoreExp(d, 0.04),
+        text: `색상 각도 오차 ${he.toFixed(0)}°, 색 차이 ΔE ${(d * 100).toFixed(1)}. 고리의 분홍 테두리가 정답 위치입니다.`,
+        node: comparePair(ans, '정답', mine, '내 답')
+      };
+    }
+  };
+}
+
+/* 정렬 공용 */
+function sortErr(order) { let e = 0; for (let i = 0; i < order.length - 1; i++) e += Math.abs(order[i + 1] - order[i]) - 1; return e; }
+function sortTask(stage, ready, cols, instr, k) {
+  const n = cols.length;
+  let order;
+  do { order = [0, ...shuffle(Array.from({ length: n - 2 }, (_, i) => i + 1)), n - 1]; } while (sortErr(order) < n);
+  const row = el('div', { class: 'chips' });
+  stage.append(row);
+  let sel = null, downPos = null, over = null, locked = false;
+  const movable = p => p > 0 && p < n - 1;
+  function render() {
+    row.replaceChildren();
+    order.forEach((ci, pos) => {
+      const d = el('div', { class: 'chip' + (movable(pos) ? '' : ' fixed') + (pos === sel ? ' sel' : '') + (pos === over && pos !== downPos ? ' over' : ''), style: `background:${css(cols[ci])}` });
+      d.dataset.pos = pos;
+      row.append(d);
+    });
+  }
+  const chipAt = e => { const t = document.elementFromPoint(e.clientX, e.clientY); const c = t && t.closest ? t.closest('.chip') : null; return c && row.contains(c) ? +c.dataset.pos : null; };
+  row.addEventListener('pointerdown', e => {
+    if (locked) return;
+    const c = e.target.closest('.chip'); if (!c) return;
+    e.preventDefault(); downPos = +c.dataset.pos;
+    try { row.setPointerCapture(e.pointerId); } catch (_) {}
+  });
+  row.addEventListener('pointermove', e => {
+    if (downPos == null) return;
+    const p = chipAt(e); if (p !== over) { over = p; render(); }
+  });
+  row.addEventListener('pointerup', e => {
+    if (downPos == null) return;
+    const up = chipAt(e);
+    if (up != null && up !== downPos) {
+      if (movable(up) && movable(downPos)) [order[up], order[downPos]] = [order[downPos], order[up]];
+      sel = null;
+    } else if (up === downPos && movable(up)) {
+      if (sel == null) sel = up;
+      else if (sel === up) sel = null;
+      else { [order[up], order[sel]] = [order[sel], order[up]]; sel = null; }
+    }
+    downPos = null; over = null; render();
+  });
+  row.addEventListener('pointercancel', () => { downPos = null; over = null; render(); });
+  render(); ready(true);
+  return {
+    instr,
+    submit() {
+      locked = true; sel = null; render();
+      const e = sortErr(order);
+      const ans = el('div', { class: 'chips answer' });
+      for (let i = 0; i < n; i++) ans.append(el('div', { class: 'chip', style: `background:${css(cols[i])}` }));
+      return { score: scoreExp(e, k), text: `정렬 오차 ${e} (0이 완벽). 아래가 정답 순서입니다.`, node: ans };
+    }
+  };
+}
+function genSort(n) {
+  for (let t = 0; t < 400; t++) {
+    const L = rand(0.62, 0.8), C = rand(0.07, 0.11) * (t > 200 ? 0.8 : 1), h0 = rand(0, 360), span = rand(60, 90) * sgn();
+    const cols = [];
+    for (let i = 0; i < n; i++) { const rgb = oklch2rgb(L, C, h0 + span * i / (n - 1)); if (!rgb) break; cols.push(q8(rgb)); }
+    if (cols.length === n) return cols;
+  }
+  return Array.from({ length: n }, (_, i) => hsv2rgb(i * 6, 0.5, 0.8));
+}
+function testSort(stage, ready) {
+  return sortTask(stage, ready, genSort(12), '양 끝 칩(아래 점 표시)은 고정입니다. 사이의 칩들을 한쪽 끝에서 다른 끝으로 자연스럽게 이어지도록 정렬하세요. 두 칩을 차례로 탭하거나 끌어다 놓으면 자리가 바뀝니다.', 6);
+}
+function genLightSort(n) {
+  const L0 = rand(0.4, 0.46), step = rand(0.05, 0.06), cols = [];
+  let prevH = rand(0, 360);
+  for (let i = 0; i < n; i++) {
+    let rgb = null;
+    for (let t = 0; t < 60 && !rgb; t++) {
+      const h = (prevH + rand(70, 290)) % 360, C = rand(0.06, 0.16) * (1 - t / 70);
+      rgb = oklch2rgb(L0 + step * i, C, h);
+      if (rgb) prevH = h;
+    }
+    cols.push(q8(rgb || gray(l2s((L0 + step * i) ** 3))));
+  }
+  return cols;
+}
+function testLightSort(stage, ready) {
+  return sortTask(stage, ready, genLightSort(9), '색상은 신경 쓰지 말고, 흑백으로 바꿨을 때의 밝기 순서(어두운 쪽 → 밝은 쪽)로 정렬하세요. 양 끝 칩은 고정입니다. 탭하거나 끌어서 자리를 바꿉니다.', 4);
+}
+
+/* 혼색 예측 */
+const MIX_MODES = [
+  { desc: 'B를 A 위에 불투명도 50%로 덧칠 (일반 모드)', f: (a, b) => (a + b) / 2, vmin: 0.45 },
+  { desc: "B 레이어를 A 위에 '곱하기(Multiply)' 모드로 겹침", f: (a, b) => a * b, vmin: 0.7 },
+  { desc: "B 레이어를 A 위에 '스크린(Screen)' 모드로 겹침", f: (a, b) => 1 - (1 - a) * (1 - b), vmin: 0.35 }
+];
+function testMix(stage, ready) {
+  const mode = pick(MIX_MODES);
+  const ha = rand(0, 360); let hb; do { hb = rand(0, 360); } while (hueDiff(ha, hb) < 60);
+  const A = q8(hsv2rgb(ha, rand(0.35, 1), rand(mode.vmin, 1)));
+  const B = q8(hsv2rgb(hb, rand(0.35, 1), rand(mode.vmin, 1)));
+  const T = A.map((x, i) => mode.f(x, B[i]));
+  const { pk, row } = pickerWithPreview({});
+  stage.append(
+    el('div', { class: 'cols' }, swatch(A, 'A', true), el('span', { class: 'op', text: '+' }), swatch(B, 'B', true)),
+    el('div', { class: 'mode', text: mode.desc }),
+    row
+  );
+  ready(true);
+  return {
+    instr: '그림 프로그램 기준으로, 아래 방식대로 A와 B를 겹쳤을 때 나오는 색을 고르세요. 바깥 고리는 색상, 안쪽 삼각형은 밝기와 채도입니다.',
+    submit() {
+      pk.lock();
+      const mine = pk.rgb(), d = dE(T, mine);
+      return { score: scoreExp(d, 0.07), text: `색 차이 ΔE ${(d * 100).toFixed(1)}.`, node: comparePair(T, '정답', mine, '내 답') };
+    }
+  };
+}
+
+/* 중간색 */
+function testMid(stage, ready) {
+  let A, B;
+  do { A = randColor(0.4, 0.35); B = randColor(0.4, 0.35); } while (dE(A, B) < 0.25);
+  const la = rgb2oklab(A), lb = rgb2oklab(B);
+  const T = q8(oklab2lin(la.map((v, i) => (v + lb[i]) / 2)).map(v => l2s(clamp01(v))));
+  const { pk, row } = pickerWithPreview({});
+  stage.append(el('div', { class: 'cols' }, swatch(A, 'A', true), el('span', { class: 'op', text: '· ? ·' }), swatch(B, 'B', true)), row);
+  ready(true);
+  return {
+    instr: 'A와 B 사이에서, 눈으로 보기에 양쪽과 똑같이 떨어진 정확한 중간색을 고르세요.',
+    submit() {
+      pk.lock();
+      const mine = pk.rgb(), d = dE(T, mine);
+      return { score: scoreExp(d, 0.06), text: `색 차이 ΔE ${(d * 100).toFixed(1)}. 정답은 지각 균등 색공간(OKLab)의 중간점입니다.`, node: comparePair(T, '정답', mine, '내 답') };
+    }
+  };
+}
+
+/* 불투명도 추정 */
+function testOpacity(stage, ready) {
+  const W = 1000, H = 520;
+  const ha = rand(0, 360); let hb; do { hb = rand(0, 360); } while (hueDiff(ha, hb) < 70);
+  const A = q8(hsv2rgb(ha, rand(0.3, 1), rand(0.3, 1))), B = q8(hsv2rgb(hb, rand(0.4, 1), rand(0.4, 1)));
+  let al; do { al = ri(12, 88); } while (al > 45 && al < 55);
+  const svg = makeSVG(W, H, false); stage.append(svg);
+  svgText(svg, 60, 50, 'A 위에 B를 칠한 결과');
+  svgEl('rect', { x: 60, y: 70, width: 500, height: 380, fill: css(A) }, svg);
+  svgEl('rect', { x: 230, y: 70, width: 180, height: 380, fill: css(B), 'fill-opacity': al / 100 }, svg);
+  svgText(svg, 680, 140, 'B (100%)');
+  svgEl('rect', { x: 680, y: 160, width: 240, height: 200, fill: css(B) }, svg);
+  const s = el('input', { type: 'range', min: 0, max: 100, step: 1, id: 'sl-' + (++gid), 'aria-label': '불투명도' });
+  s.value = 50;
+  const out = el('div', { class: 'val', text: '50%' });
+  s.addEventListener('input', () => { out.textContent = s.value + '%'; });
+  stage.append(el('div', { class: 'ctl' }, out, s));
+  ready(true);
+  return {
+    instr: '가운데 띠는 B를 A 위에 일정한 불투명도로 칠한 것입니다. 불투명도가 몇 %였는지 슬라이더로 답하세요.',
+    submit() {
+      s.disabled = true;
+      const err = Math.abs(+s.value - al);
+      return { score: scoreExp(err, 7), text: `정답은 ${al}%, 내 답은 ${s.value}%입니다.` };
+    }
+  };
+}
+
+/* 흑백 변환 */
+function testGray(stage, ready) {
+  const C = q8(hsv2rgb(rand(0, 360), rand(0.5, 1), rand(0.55, 1)));
+  const gT = l2s(lumY(C));
+  const lo = rand(0, 0.12), hi = rand(0.88, 1);
+  let v0; do { v0 = RNG(); } while (Math.abs(lo + v0 * (hi - lo) - gT) < 0.12);
+  const gsw = el('div', { class: 'sw' });
+  const sl = slider('회색 밝기', v0);
+  const val = () => lo + sl.get() * (hi - lo);
+  const draw = () => { gsw.style.background = css(gray(val())); };
+  sl.input.addEventListener('input', draw); draw();
+  stage.append(el('div', { class: 'cols' }, swatch(C, '컬러'), el('div', { class: 'swbox' }, gsw, el('span', { text: '흑백 예상' }))), sl.wrap);
+  ready(true);
+  return {
+    instr: '왼쪽 색을 흑백으로 바꾸면 어떤 회색이 될지, 오른쪽 회색을 슬라이더로 맞추세요. 사람 눈이 느끼는 밝기(휘도) 기준입니다.',
+    submit() {
+      sl.input.disabled = true;
+      const e = Math.abs(okL(gray(val())) - okL(gray(gT)));
+      return { score: scoreExp(e, 0.03), text: `밝기 차이 ΔL ${(e * 100).toFixed(1)}.`, node: comparePair(gray(gT), '정답', gray(val()), '내 답') };
+    }
+  };
+}
+
+/* 명도 등간격 */
+function testLStar(stage, ready) {
+  const W = 1000, H = 470, SW = 200;
+  const targets = [25, 50, 75].map(L => l2s(((L + 16) / 116) ** 3));
+  const g = [0, ...[rand(0.1, 0.9), rand(0.1, 0.9), rand(0.1, 0.9)].sort((a, b) => a - b), 1];
+  const svg = makeSVG(W, H, true); stage.append(svg);
+  const rects = g.map((v, i) => svgEl('rect', { x: i * SW, y: 0, width: SW + 0.5, height: 380, fill: css(gray(v)) }, svg));
+  for (let i = 1; i <= 3; i++) {
+    svgEl('rect', { x: i * SW + 70, y: 330, width: 60, height: 36, rx: 18, style: 'fill:var(--surface);stroke:var(--line)' }, svg);
+    svgText(svg, i * SW + 100, 357, '↕', 'fill:var(--fg);font-size:26px;text-anchor:middle');
+  }
+  let idx = null, v0 = 0, y0 = 0;
+  const d = onDrag(svg, {
+    down: p => { const i = Math.floor(p[0] / SW); idx = (i >= 1 && i <= 3) ? i : null; if (idx) { v0 = g[idx]; y0 = p[1]; } },
+    move: p => { if (!idx) return; g[idx] = clamp01(v0 - (p[1] - y0) / 500); rects[idx].setAttribute('fill', css(gray(g[idx]))); }
+  });
+  ready(true);
+  return {
+    instr: '검정과 흰색 사이의 회색 세 칸을 위아래로 드래그해서, 다섯 칸의 밝기 간격이 눈으로 보기에 모두 같아지게 만드세요.',
+    submit() {
+      d.lock();
+      targets.forEach((t, i) => svgEl('rect', { x: (i + 1) * SW, y: 395, width: SW + 0.5, height: 75, fill: css(gray(t)) }, svg));
+      svgEl('rect', { x: 0, y: 395, width: SW, height: 75, fill: '#000' }, svg);
+      svgEl('rect', { x: 4 * SW, y: 395, width: SW, height: 75, fill: '#fff' }, svg);
+      const errs = [1, 2, 3].map(i => Math.abs(lstar(g[i]) - [25, 50, 75][i - 1]));
+      const mean = errs.reduce((a, b) => a + b, 0) / 3;
+      return { score: scoreExp(mean, 4), text: `칸별 명도(L*) 오차 ${errs.map(e => e.toFixed(1)).join(' / ')}. 아래 줄이 정답 간격입니다.` };
+    }
+  };
+}
+
+/* 화이트밸런스 */
+function testWB(stage, ready) {
+  const W = 1000, H = 600;
+  const hues = [rand(0, 360)]; hues.push(hues[0] + rand(100, 140)); hues.push(hues[0] + rand(220, 260));
+  const objs = [
+    { t: 'rect', a: { x: 0, y: 0, width: W, height: 390 }, c: gray(rand(0.68, 0.78)) },
+    { t: 'rect', a: { x: 0, y: 390, width: W, height: 210 }, c: q8(hsv2rgb(rand(18, 38), rand(0.35, 0.55), rand(0.45, 0.6))) },
+    { t: 'rect', a: { x: 330, y: 200, width: 170, height: 230 }, c: q8(hsv2rgb(hues[0], rand(0.4, 0.75), rand(0.45, 0.75))) },
+    { t: 'circle', a: { cx: 190, cy: 420, r: 95 }, c: q8(hsv2rgb(hues[1], rand(0.45, 0.8), rand(0.5, 0.8))) },
+    { t: 'circle', a: { cx: 560, cy: 470, r: 52 }, c: q8(hsv2rgb(hues[2], rand(0.45, 0.8), rand(0.5, 0.8))) },
+    { t: 'rect', a: { x: 640, y: 170, width: 140, height: 250 }, c: gray(0.5), card: true },
+    { t: 'rect', a: { x: 830, y: 300, width: 100, height: 140, rx: 10 }, c: gray(0.9) }
+  ];
+  const a0 = sgn() * rand(0.2, 0.45), b0 = sgn() * rand(0.08, 0.25);
+  const gains = (a, b) => { const g = [Math.exp(a / 2 + b / 3), Math.exp(-2 * b / 3), Math.exp(-a / 2 + b / 3)]; const n = 0.2126 * g[0] + 0.7152 * g[1] + 0.0722 * g[2]; return g.map(x => x / n); };
+  const apply = (c, gn) => c.map((v, i) => l2s(clamp01(s2l(v) * gn[i])));
+  const svg = makeSVG(W, H, false); stage.append(svg);
+  for (const o of objs) o.el = svgEl(o.t, o.a, svg);
+  const rA = [-a0 - rand(0.25, 0.5), -a0 + rand(0.25, 0.5)], rB = [-b0 - rand(0.15, 0.3), -b0 + rand(0.15, 0.3)];
+  const mapA = v => rA[0] + v * (rA[1] - rA[0]), mapB = v => rB[0] + v * (rB[1] - rB[0]);
+  let va, vb;
+  do { va = RNG(); vb = RNG(); } while (Math.hypot(a0 + mapA(va), b0 + mapB(vb)) < 0.15);
+  const s1 = slider('색온도 (파랑 ↔ 주황)', va), s2 = slider('색조 (초록 ↔ 자주)', vb);
+  let card = null;
+  const draw = () => {
+    const gn = gains(a0 + mapA(s1.get()), b0 + mapB(s2.get()));
+    for (const o of objs) { const c = apply(o.c, gn); o.el.setAttribute('fill', css(c)); if (o.card) card = c; }
+  };
+  s1.input.addEventListener('input', draw); s2.input.addEventListener('input', draw); draw();
+  stage.append(s1.wrap, s2.wrap);
+  ready(true);
+  return {
+    instr: '사진에 색이 끼어 있습니다. 가운데 오른쪽의 세로로 긴 회색 카드가 완전한 무채색 회색이 되도록 두 슬라이더를 조절하세요.',
+    submit() {
+      s1.input.disabled = true; s2.input.disabled = true;
+      const lab = rgb2oklab(card), ch = Math.hypot(lab[1], lab[2]);
+      const neutral = gray(l2s(lumY(card)));
+      return { score: scoreExp(ch, 0.012), text: `회색 카드에 남은 색기(채도) ${(ch * 100).toFixed(2)}.`, node: comparePair(neutral, '완전한 회색', card, '내 카드') };
+    }
+  };
+}
+
+/* =========================================================
+   기억
+   ========================================================= */
+
+function bestMatch(A, B) {
+  const n = A.length; let best = Infinity, bestP = null;
+  const used = Array(n).fill(false), perm = [];
+  (function rec(i, sum) {
+    if (sum >= best) return;
+    if (i === n) { best = sum; bestP = perm.slice(); return; }
+    for (let j = 0; j < n; j++) if (!used[j]) {
+      used[j] = true; perm.push(j);
+      rec(i + 1, sum + Math.hypot(A[i][0] - B[j][0], A[i][1] - B[j][1]));
+      perm.pop(); used[j] = false;
+    }
+  })(0, 0);
+  return { mean: best / n, perm: bestP };
+}
+function testDots(stage, ready) {
+  const W = 1000, H = 700, n = 6, dots = [];
+  while (dots.length < n) {
+    const p = [rand(70, 930), rand(70, 630)];
+    if (dots.every(q => Math.hypot(p[0] - q[0], p[1] - q[1]) > 130)) dots.push(p);
+  }
+  const svg = makeSVG(W, H, true); stage.append(svg);
+  const sg = svgEl('g', {}, svg);
+  for (const p of dots) svgEl('circle', { cx: p[0], cy: p[1], r: 14, style: 'fill:var(--fg)' }, sg);
+  const ug = svgEl('g', {}, svg);
+  const hint = el('p', { class: 'hint', text: '위치를 외운 뒤 버튼을 누르세요.' });
+  stage.append(hint);
+  let phase = 'show', mine = [];
+  const draw = () => {
+    ug.replaceChildren();
+    for (const p of mine) svgEl('circle', { cx: p[0], cy: p[1], r: 14, style: 'fill:var(--accent)' }, ug);
+    hint.textContent = `찍은 점 ${mine.length} / ${n} · 찍은 점을 다시 탭하면 지워집니다.`;
+  };
+  memoryButton(stage, () => { sg.remove(); phase = 'place'; draw(); });
+  const d = onDrag(svg, {
+    down: () => {},
+    up: p => {
+      if (phase !== 'place') return;
+      const i = mine.findIndex(q => Math.hypot(q[0] - p[0], q[1] - p[1]) < 40);
+      if (i >= 0) mine.splice(i, 1); else if (mine.length < n) mine.push(p);
+      draw(); ready(mine.length === n);
+    }
+  });
+  return {
+    instr: `점 ${n}개의 위치를 외우고 '외웠어요'를 누른 뒤, 같은 위치에 점을 다시 찍으세요. 시간 제한은 없습니다.`,
+    submit() {
+      d.lock();
+      const m = bestMatch(dots, mine);
+      dots.forEach((p, i) => { ln(svg, p, mine[m.perm[i]], 'stroke:var(--truth);stroke-width:2'); svgEl('circle', { cx: p[0], cy: p[1], r: 10, style: 'fill:var(--truth)' }, svg); });
+      return { score: scoreExp(m.mean, 30), text: `점 하나당 평균 오차 ${m.mean.toFixed(0)}. 분홍 점이 원래 위치입니다.` };
+    }
+  };
+}
+function testRatio(stage, ready) {
+  const W = 1000, H = 700;
+  let r, w, h, area;
+  do {
+    r = Math.exp(rand(Math.log(0.3), Math.log(3.3)));
+    area = rand(40000, 90000); w = Math.sqrt(area * r); h = Math.sqrt(area / r);
+  } while (Math.abs(Math.log(r)) < 0.15 || w > 880 || h > 600);
+  const svg = makeSVG(W, H, true); stage.append(svg);
+  const c1 = [500 + rand(-80, 80), 350 + rand(-60, 60)];
+  const first = svgEl('rect', { x: c1[0] - w / 2, y: c1[1] - h / 2, width: w, height: h, style: 'fill:var(--shape)' }, svg);
+  const ug = svgEl('g', {}, svg);
+  let phase = 'show', uw = 0, uh = 0;
+  const draw = () => {
+    ug.replaceChildren();
+    svgEl('rect', { x: 500 - uw / 2, y: 350 - uh / 2, width: uw, height: uh, style: 'fill:var(--accent);opacity:.8' }, ug);
+    svgEl('circle', { cx: 500 + uw / 2, cy: 350 + uh / 2, r: 12, style: 'fill:var(--fg)' }, ug);
+  };
+  memoryButton(stage, () => {
+    first.remove(); phase = 'adj';
+    let r0; do { r0 = Math.exp(rand(Math.log(0.3), Math.log(3.3))); } while (Math.abs(Math.log(r0 / r)) < 0.35);
+    const a2 = area * pick([rand(0.45, 0.7), rand(1.3, 1.8)]);
+    uw = Math.min(900, Math.sqrt(a2 * r0)); uh = Math.min(620, Math.sqrt(a2 / r0));
+    draw(); ready(true);
+  });
+  const d = onDrag(svg, {
+    move: p => { if (phase !== 'adj') return; uw = clamp(2 * Math.abs(p[0] - 500), 30, 980); uh = clamp(2 * Math.abs(p[1] - 350), 30, 680); draw(); }
+  });
+  return {
+    instr: "직사각형의 가로세로 비율을 외우고 '외웠어요'를 누르세요. 크기가 다른 새 직사각형이 나오면, 드래그로 모서리를 움직여 같은 비율로 만드세요.",
+    submit() {
+      d.lock();
+      const ur = uw / uh, a = uw * uh, tw = Math.sqrt(a * r), th = Math.sqrt(a / r);
+      svgEl('rect', { x: 500 - tw / 2, y: 350 - th / 2, width: tw, height: th, style: DASH }, svg);
+      return { score: scoreExp(Math.abs(Math.log(ur / r)), 0.06), text: `원래 비율 ${r.toFixed(2)} : 1, 내 답 ${ur.toFixed(2)} : 1 (가로 : 세로). 점선이 정답 비율입니다.` };
+    }
+  };
+}
+
+/* =========================================================
+   runner
+   ========================================================= */
+const CATS = [['persp', '원근·투시'], ['form', '형태·손감각'], ['illu', '착시'], ['color', '색'], ['mem', '기억']];
+const LENS = [['quick', '빠르게 12문항'], ['all', '전체 1회씩'], ['all2', '전체 2회씩']];
+const TESTS = [
+  { id: 'vp', cat: 'persp', name: '소실점 찍기', make: testVP },
+  { id: 'eye', cat: 'persp', name: '눈높이선 긋기', make: testEyeLevel },
+  { id: 'floor', cat: 'persp', name: '바닥 등분', make: testFloor },
+  { id: 'ell', cat: 'persp', name: '투시 타원', make: testEllipse },
+  { id: 'shadow', cat: 'persp', name: '그림자 길이', make: testShadow },
+  { id: 'mirror', cat: 'persp', name: '거울 반사', make: testMirror },
+  { id: 'cen', cat: 'form', name: '무게중심', make: testCentroid },
+  { id: 'area', cat: 'form', name: '넓이 맞추기', make: testArea },
+  { id: 'par', cat: 'form', name: '평행선 긋기', make: testParallel },
+  { id: 'circle', cat: 'form', name: '원 그리기', make: testCircle },
+  { id: 'len', cat: 'form', name: '길이 복사', make: testLength },
+  { id: 'ang', cat: 'form', name: '각도 만들기', make: testAngle },
+  { id: 'sym', cat: 'form', name: '대칭축 찾기', make: testSym },
+  { id: 'curve', cat: 'form', name: '곡선 잇기', make: (s, r) => testOcclude(s, r, 'curve') },
+  { id: 'rot', cat: 'form', name: '회전 원위치', make: testRotate },
+  { id: 'ml', cat: 'illu', name: '뮐러-라이어', make: testMuller },
+  { id: 'ebb', cat: 'illu', name: '에빙하우스', make: testEbb },
+  { id: 'chk', cat: 'illu', name: '체커 그림자', make: testChecker },
+  { id: 'pog', cat: 'illu', name: '포겐도르프', make: (s, r) => testOcclude(s, r, 'line') },
+  { id: 'hue', cat: 'color', name: '색상환 찾기', make: (s, r) => testHue(s, r, false) },
+  { id: 'comp', cat: 'color', name: '보색 찾기', make: (s, r) => testHue(s, r, true) },
+  { id: 'sort', cat: 'color', name: '색상 정렬', make: testSort },
+  { id: 'lsort', cat: 'color', name: '명도 순 정렬', make: testLightSort },
+  { id: 'mix', cat: 'color', name: '혼색 예측', make: testMix },
+  { id: 'mid', cat: 'color', name: '중간색', make: testMid },
+  { id: 'opa', cat: 'color', name: '불투명도 추정', make: testOpacity },
+  { id: 'gray', cat: 'color', name: '흑백 변환', make: testGray },
+  { id: 'lstar', cat: 'color', name: '명도 등간격', make: testLStar },
+  { id: 'wb', cat: 'color', name: '화이트밸런스', make: testWB },
+  { id: 'dots', cat: 'mem', name: '점 배치 기억', make: testDots },
+  { id: 'ratio', cat: 'mem', name: '비율 기억', make: testRatio }
+];
+const catName = id => (CATS.find(c => c[0] === id) || ['', ''])[1];
+const lenName = id => (LENS.find(l => l[0] === id) || ['', ''])[1];
+const app = document.getElementById('app');
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch (_) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (_) {} }
+};
+const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
+const rid = n => { const cs = 'abcdefghjkmnpqrstuvwxyz23456789'; let s = ''; for (let i = 0; i < n; i++) s += cs[Math.floor(Math.random() * cs.length)]; return s; };
+const CODE_RE = /^[a-z0-9][a-z0-9_.-]{0,47}$/;
+
+/* ---------- seeded RNG: everyone in a room gets the same problems ---------- */
+function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function hashStr(s) { let h = 1779033703 ^ s.length; for (let i = 0; i < s.length; i++) { h = Math.imul(h ^ s.charCodeAt(i), 3432918353); h = h << 13 | h >>> 19; } h = Math.imul(h ^ h >>> 16, 2246822507); h = Math.imul(h ^ h >>> 13, 3266489909); return (h ^ h >>> 16) >>> 0; }
+function buildItems(spec) {
+  RNG = mulberry32(hashStr(spec.seed + '|order'));
+  let tests = shuffle(TESTS.filter(t => spec.cats.includes(t.cat)));
+  if (spec.len === 'quick') tests = tests.slice(0, 12);
+  const rounds = spec.len === 'all2' ? 2 : 1, items = [];
+  for (const t of tests) for (let r = 0; r < rounds; r++) items.push({ t, r, rounds });
+  RNG = Math.random;
+  return items;
+}
+function validSpec(g) {
+  return g && typeof g.id === 'string' && g.id.length <= 24 && typeof g.seed === 'number' && Array.isArray(g.cats) &&
+    g.cats.length > 0 && g.cats.every(c => CATS.some(k => k[0] === c)) && LENS.some(l => l[0] === g.len);
+}
+
+/* ---------- app state ---------- */
+const S = {
+  room: undefined,          // undefined = connecting, null = unavailable
+  R: null, unsub: null, code: null, ja: 0,
+  nick: store.get('mt-nick') || '',
+  cfg: { cats: CATS.map(c => c[0]), len: 'quick' },
+  cur: null, lastGameId: null, solo: false,
+  view: 'entry', refresh: null, lobbyHost: null
+};
+const inRoom = () => !!S.R && !S.solo;
+const pres = patch => { if (S.R) S.R.presence(patch).catch(() => {}); };
+function players() {
+  if (!S.R) return [];
+  return S.R.peers().filter(p => p.kind === 'viewer' && p.presence && typeof p.presence.nick === 'string' && p.presence.nick.trim());
+}
+function hostPeer() {
+  const ps = players().slice().sort((a, b) => ((+a.presence.ja || 0) - (+b.presence.ja || 0)) || (a.peer < b.peer ? -1 : 1));
+  return ps[0] || null;
+}
+const amHost = () => { const h = hostPeer(); return !h || (h.isMe && h.sameTab); };
+const nickOf = p => String(p.presence.nick).slice(0, 12);
+const isMeP = p => p.isMe && p.sameTab;
+function gamePeers() {
+  if (!S.cur) return [];
+  return players().filter(p => p.presence.game && p.presence.game.id === S.cur.id);
+}
+const scoresOf = p => (Array.isArray(p.presence.sc) ? p.presence.sc.filter(x => typeof x === 'number' && x >= 0 && x <= 100) : []);
+
+function onRoom() {
+  followHost();
+  if (S.refresh) S.refresh();
+}
+function followHost() {
+  if (!inRoom() || amHost()) return;
+  const h = hostPeer();
+  const g = h && h.presence.game;
+  if (!validSpec(g) || g.id === S.lastGameId || h.presence.st !== 'play') return;
+  if (S.view === 'play' && S.cur && !S.cur.done) { if (S.showBanner) S.showBanner(g); return; }
+  startGame({ id: g.id, seed: g.seed, cats: g.cats.slice(), len: g.len });
+}
+
+/* ---------- room connection ---------- */
+async function connectRoom() {
+  let room = null;
+  try { room = (window.claude && typeof window.claude.use === 'function') ? await window.claude.use('room') : null; } catch (_) { room = null; }
+  S.room = room;
+  if (S.view === 'entry' && S.refresh) S.refresh();
+}
+async function joinRoom(code, nick) {
+  const R = await S.room.join(code);
+  S.R = R; S.code = code; S.nick = nick; S.solo = false; S.ja = Date.now();
+  store.set('mt-nick', nick);
+  try { history.replaceState(null, '', '#room-' + code); } catch (_) {}
+  pres({ nick, ja: S.ja, st: 'lobby' });
+  S.unsub = R.onPeers(onRoom, () => {
+    S.R = null; S.unsub = null;
+    if (S.view === 'lobby' || S.view === 'entry') showEntry('방 연결이 끊겼습니다. 다시 입장하거나 혼자 해 보세요.');
+    else if (S.refresh) S.refresh();
+  });
+  showLobby();
+}
+function leaveRoom() {
+  if (S.unsub) S.unsub();
+  if (S.R) S.R.leave().catch(() => {});
+  S.R = null; S.unsub = null; S.cur = null; S.code = null;
+  try { history.replaceState(null, '', location.pathname + location.search); } catch (_) {}
+  showEntry();
+}
+
+/* ---------- shared bits ---------- */
+function topBar(left, right) { return el('div', { class: 'top' }, el('span', { text: left }), el('span', { text: right })); }
+function playerChips(list, opts = {}) {
+  const host = hostPeer();
+  const wrap = el('div', { class: 'plist' });
+  for (const p of list) {
+    const c = el('span', { class: 'pchip' + (isMeP(p) ? ' me' : '') }, el('span', { text: nickOf(p) }));
+    if (host && p.peer === host.peer) c.append(el('span', { class: 'badge', text: '방장' }));
+    if (isMeP(p)) c.append(el('span', { class: 'badge muted', text: '나' }));
+    if (opts.progress && S.cur) { const n = scoresOf(p).length; c.append(el('span', { class: 'prog-n', text: ` ${Math.min(n, S.cur.items.length)}/${S.cur.items.length}` })); }
+    wrap.append(c);
+  }
+  return wrap;
+}
+function setupForm(cfg, onChange) {
+  const boxes = CATS.map(([id, name]) => {
+    const cb = el('input', { type: 'checkbox', id: 'cat-' + id });
+    cb.checked = cfg.cats.includes(id);
+    const cnt = TESTS.filter(t => t.cat === id).length;
+    return { id, cb, label: el('label', { class: 'opt', for: 'cat-' + id }, cb, el('span', { text: `${name} (${cnt})` })) };
+  });
+  const lens = LENS.map(([id, name]) => {
+    const rb = el('input', { type: 'radio', name: 'len', id: 'len-' + id, value: id });
+    rb.checked = cfg.len === id;
+    return { id, rb, label: el('label', { class: 'opt', for: 'len-' + id }, rb, el('span', { text: name })) };
+  });
+  const info = el('p', { class: 'small muted' });
+  const read = () => ({ cats: boxes.filter(b => b.cb.checked).map(b => b.id), len: (lens.find(l => l.rb.checked) || lens[0]).id });
+  const update = () => {
+    const o = read(); cfg.cats = o.cats; cfg.len = o.len;
+    const n = countItems(o);
+    info.textContent = n ? `총 ${n}문항 · 시간 제한 없음` : '카테고리를 하나 이상 고르세요.';
+    onChange(n > 0);
+  };
+  [...boxes.map(b => b.cb), ...lens.map(l => l.rb)].forEach(i => i.addEventListener('change', update));
+  const node = el('div', { class: 'stack' },
+    el('fieldset', {}, el('legend', { text: '카테고리' }), ...boxes.map(b => b.label)),
+    el('fieldset', {}, el('legend', { text: '길이' }), ...lens.map(l => l.label)),
+    info);
+  return { node, update };
+}
+function countItems(o) {
+  const n = TESTS.filter(t => o.cats.includes(t.cat)).length;
+  return o.len === 'quick' ? Math.min(12, n) : o.len === 'all' ? n : n * 2;
+}
+const cfgText = c => `${c.cats.map(catName).join(', ')} · ${lenName(c.len)} (${countItems(c)}문항)`;
+
+/* ---------- entry ---------- */
+function showEntry(msg) {
+  S.view = 'entry'; S.cur = null;
+  const hashCode = (location.hash.match(/^#room-([a-z0-9][a-z0-9_.-]{0,47})$/) || [])[1] || '';
+  const nickIn = el('input', { type: 'text', id: 'nick', maxlength: 12, placeholder: '닉네임', autocomplete: 'off' });
+  nickIn.value = S.nick;
+  const codeIn = el('input', { type: 'text', id: 'code', maxlength: 16, placeholder: '방 코드', autocomplete: 'off', autocapitalize: 'none' });
+  codeIn.value = S.code || hashCode;
+  const joinBtn = el('button', { class: 'primary', text: '입장' });
+  const newBtn = el('button', { text: '새 방 만들기' });
+  const soloBtn = el('button', { text: '혼자 하기' });
+  const status = el('p', { class: 'small muted' });
+  const err = el('p', { class: 'small err', text: msg || '' });
+  const getNick = () => Array.from(nickIn.value).filter(ch => { const c = ch.codePointAt(0); return c > 31 && c !== 127 && !(c >= 0x200b && c <= 0x200f) && !(c >= 0x2028 && c <= 0x202e) && !(c >= 0x2060 && c <= 0x206f) && c !== 0xfeff; }).join('').trim().slice(0, 12);
+  async function go(code) {
+    const nick = getNick();
+    if (!nick) { err.textContent = '닉네임을 입력하세요.'; nickIn.focus(); return; }
+    code = code.toLowerCase().trim();
+    if (!CODE_RE.test(code)) { err.textContent = '방 코드는 영문 소문자와 숫자로 입력하세요.'; codeIn.focus(); return; }
+    joinBtn.disabled = newBtn.disabled = true; err.textContent = ''; status.textContent = '입장하는 중…';
+    try { await joinRoom(code, nick); }
+    catch (e) {
+      joinBtn.disabled = newBtn.disabled = false; status.textContent = '';
+      err.textContent = (e && e.code === 'not_permitted') ? '이 계정으로는 방에 들어갈 수 없습니다. 혼자 하기는 가능합니다.' : '입장하지 못했습니다. 잠시 후 다시 시도하세요.';
+    }
+  }
+  joinBtn.onclick = () => go(codeIn.value);
+  newBtn.onclick = () => { const c = rid(4); codeIn.value = c; go(c); };
+  soloBtn.onclick = () => { S.nick = getNick() || S.nick; showSoloSetup(); };
+  codeIn.addEventListener('keydown', e => { if (e.key === 'Enter') joinBtn.click(); });
+  const refresh = () => {
+    const ok = !!S.room;
+    joinBtn.disabled = newBtn.disabled = !ok;
+    status.textContent = S.room === undefined ? '방 서버에 연결하는 중…' : S.room === null ? '이 화면에서는 방 기능을 쓸 수 없어 혼자 하기만 가능합니다.' : '';
+  };
+  S.refresh = refresh;
+  app.replaceChildren(
+    el('h1', { text: '미적감각 테스트' }),
+    el('p', { class: 'muted', text: `원근, 형태, 착시, 색, 기억을 다루는 테스트 ${TESTS.length}종입니다. 같은 방에 들어온 사람들은 똑같은 문제를 풀고, 끝나면 순위를 봅니다.` }),
+    el('div', { class: 'stack' },
+      el('label', { class: 'small muted', for: 'nick', text: '닉네임' }), nickIn,
+      el('label', { class: 'small muted', for: 'code', text: '방 코드 (친구가 만든 방이면 그 코드를 입력)' }), codeIn),
+    err, status,
+    el('div', { class: 'actions' }, soloBtn, newBtn, joinBtn)
+  );
+  refresh();
+}
+
+/* ---------- lobby ---------- */
+function showLobby() {
+  S.view = 'lobby'; S.cur = null;
+  const host = amHost();
+  S.lobbyHost = host;
+  pres({ st: 'lobby', cfg: host ? { cats: S.cfg.cats, len: S.cfg.len } : null });
+  const codeEl = el('div', { class: 'code', text: S.code });
+  const copy = el('button', { text: window.__standalone ? '초대 링크 복사' : '코드 복사' });
+  copy.onclick = () => {
+    const label = window.__standalone ? '초대 링크 복사' : '코드 복사';
+    const done = () => { copy.textContent = '복사됨'; setTimeout(() => { copy.textContent = label; }, 1500); };
+    try { navigator.clipboard.writeText(window.__standalone ? location.href : S.code).then(done, () => selectText(codeEl)); } catch (_) { selectText(codeEl); }
+  };
+  const plWrap = el('div');
+  const area = el('div', { class: 'stack' });
+  const leave = el('button', { text: '방 나가기' });
+  leave.onclick = leaveRoom;
+  if (host) {
+    const start = el('button', { class: 'primary', text: '시작하기' });
+    const form = setupForm(S.cfg, ok => { start.disabled = !ok; pres({ cfg: { cats: S.cfg.cats, len: S.cfg.len } }); });
+    start.onclick = hostStart;
+    area.append(el('h2', { text: '게임 설정' }), form.node, el('div', { class: 'actions' }, leave, start));
+    form.update();
+  } else {
+    const cfgEl = el('p', {});
+    area.append(el('h2', { text: '방장 설정' }), cfgEl, el('p', { class: 'small muted', text: '방장이 시작하면 자동으로 시작됩니다.' }), el('div', { class: 'actions' }, leave));
+    area.cfgEl = cfgEl;
+  }
+  const refresh = () => {
+    if (amHost() !== S.lobbyHost) { showLobby(); return; }
+    const ps = players();
+    plWrap.replaceChildren(el('p', { class: 'small muted', text: `참가자 ${ps.length}명` }), playerChips(ps));
+    if (area.cfgEl) {
+      const h = hostPeer(), c = h && h.presence.cfg;
+      const st = h && h.presence.st;
+      area.cfgEl.textContent = (c && Array.isArray(c.cats) && c.cats.length) ? cfgText({ cats: c.cats.filter(x => CATS.some(k => k[0] === x)), len: c.len }) : '방장이 설정하는 중입니다.';
+      if (st === 'play') area.cfgEl.textContent += ' · 지금 게임이 진행 중입니다. 다음 판부터 함께할 수 있습니다.';
+    }
+  };
+  S.refresh = refresh;
+  app.replaceChildren(
+    topBar('미적감각 테스트', '대기실'),
+    el('div', { class: 'roomhead' }, el('div', {}, el('div', { class: 'small muted', text: '방 코드' }), codeEl), copy),
+    el('p', { class: 'small muted', text: window.__standalone ? '초대 링크를 보내면 받은 사람은 닉네임만 넣고 바로 들어옵니다.' : '함께할 사람에게 이 페이지와 방 코드를 알려주세요.' }),
+    plWrap, area
+  );
+  refresh();
+}
+function selectText(node) { try { const r = document.createRange(); r.selectNodeContents(node); const s = getSelection(); s.removeAllRanges(); s.addRange(r); } catch (_) {} }
+function hostStart() {
+  startGame({ id: rid(10), seed: Math.floor(Math.random() * 4294967296), cats: S.cfg.cats.slice(), len: S.cfg.len });
+}
+
+/* ---------- solo setup ---------- */
+function showSoloSetup() {
+  S.view = 'solo'; S.solo = true; S.refresh = null;
+  const start = el('button', { class: 'primary', text: '시작하기' });
+  const back = el('button', { text: '처음으로' });
+  back.onclick = () => { S.solo = false; showEntry(); };
+  const form = setupForm(S.cfg, ok => { start.disabled = !ok; });
+  start.onclick = () => startGame({ id: rid(10), seed: Math.floor(Math.random() * 4294967296), cats: S.cfg.cats.slice(), len: S.cfg.len });
+  app.replaceChildren(
+    topBar('미적감각 테스트', '혼자 하기'),
+    el('h2', { text: '혼자 하기' }),
+    form.node,
+    el('p', { class: 'small muted', text: '색 문제는 화면 설정의 영향을 받습니다. 야간 모드(Night Shift), True Tone, 블루라이트 필터를 끄고 하면 더 정확합니다.' }),
+    el('div', { class: 'actions' }, back, start)
+  );
+  form.update();
+}
+
+/* ---------- game ---------- */
+function startGame(spec) {
+  S.cur = { ...spec, items: buildItems(spec), i: 0, scores: [], done: false };
+  S.lastGameId = spec.id;
+  if (inRoom()) pres({ st: 'play', game: { id: spec.id, seed: spec.seed, cats: spec.cats, len: spec.len }, sc: [] });
+  showItem();
+  window.scrollTo(0, 0);
+}
+function showItem() {
+  const cur = S.cur, it = cur.items[cur.i], last = cur.i === cur.items.length - 1;
+  S.view = 'play';
+  RNG = mulberry32(hashStr(cur.seed + '|' + cur.i));
+  const h = el('h2', {}, el('span', { text: it.t.name }), it.rounds > 1 ? el('span', { class: 'r', text: `${it.r + 1}/${it.rounds}` }) : null);
+  const instr = el('p', { class: 'instr' });
+  const stage = el('div', { class: 'stage' });
+  const fb = el('div', { class: 'feedback', hidden: true });
+  const btn = el('button', { class: 'primary', text: '제출' });
+  btn.disabled = true;
+  const prog = el('div', { class: 'prog' }, el('i', { style: `width:${(cur.i / cur.items.length) * 100}%` }));
+  const live = el('div', { class: 'live' });
+  const bannerSlot = el('div');
+  const others = el('p', { class: 'small muted' });
+  app.replaceChildren(
+    topBar(catName(it.t.cat) + (inRoom() ? ` · 방 ${S.code}` : ''), `${cur.i + 1} / ${cur.items.length}`),
+    prog, bannerSlot, live, h, instr, stage, fb, el('div', { class: 'actions' }, btn)
+  );
+  let done = false;
+  const ready = v => { if (!done) btn.disabled = !v; };
+  const api = it.t.make(stage, ready);
+  instr.textContent = api.instr;
+  S.showBanner = g => {
+    bannerSlot.replaceChildren(el('div', { class: 'banner' }, el('span', { text: '방장이 새 게임을 시작했습니다.' }),
+      Object.assign(el('button', { class: 'primary', text: '새 게임으로 이동' }), { onclick: () => startGame({ id: g.id, seed: g.seed, cats: g.cats.slice(), len: g.len }) })));
+  };
+  const refresh = () => {
+    if (!inRoom()) { live.replaceChildren(); others.textContent = ''; return; }
+    const ps = gamePeers();
+    live.replaceChildren(playerChips(ps, { progress: true }));
+    if (done) {
+      const os = ps.filter(p => !isMeP(p)).map(p => [nickOf(p), scoresOf(p)[cur.i]]).filter(x => typeof x[1] === 'number');
+      others.textContent = os.length ? '이 문제 다른 사람 점수: ' + os.map(([n, s]) => `${n} ${s}점`).join(' · ') : (ps.length > 1 ? '아직 이 문제를 제출한 다른 사람이 없습니다.' : '');
+    }
+  };
+  S.refresh = refresh;
+  refresh();
+  btn.onclick = () => {
+    if (!done) {
+      done = true;
+      const res = api.submit();
+      cur.scores.push(res.score);
+      if (inRoom()) pres({ sc: cur.scores.slice(), st: last ? 'done' : 'play' });
+      fb.replaceChildren(el('div', { class: 'score', text: `${res.score}점` }), el('p', { class: 'small', text: res.text }), res.node || null, others);
+      fb.hidden = false;
+      refresh();
+      btn.textContent = last ? '결과 보기' : '다음';
+      btn.disabled = false;
+      btn.focus({ preventScroll: true });
+    } else {
+      cur.i++;
+      if (cur.i < cur.items.length) showItem(); else { cur.done = true; showResults(); }
+      window.scrollTo(0, 0);
+    }
+  };
+}
+
+/* ---------- results ---------- */
+function myBreakdown() {
+  const cur = S.cur, by = {};
+  cur.items.forEach((it, i) => { if (typeof cur.scores[i] === 'number') (by[it.t.id] = by[it.t.id] || []).push(cur.scores[i]); });
+  const rows = [];
+  for (const [cid, cname] of CATS) {
+    const ts = TESTS.filter(t => t.cat === cid && by[t.id]);
+    if (!ts.length) continue;
+    rows.push(el('tr', { class: 'cat' }, el('td', { text: cname }), el('td', {}), el('td', { class: 'num', text: String(Math.round(mean(ts.flatMap(t => by[t.id])))) })));
+    for (const t of ts) {
+      const s = by[t.id], avg = Math.round(mean(s));
+      rows.push(el('tr', {},
+        el('td', {}, el('div', { text: t.name }), s.length > 1 ? el('div', { class: 'small muted', text: s.join(' · ') }) : null),
+        el('td', { style: 'width:40%' }, el('div', { class: 'bar' }, el('i', { style: `width:${avg}%` }))),
+        el('td', { class: 'num', text: String(avg) })));
+    }
+  }
+  return el('table', {}, el('thead', {}, el('tr', {}, el('th', { text: '테스트' }), el('th', { text: '' }), el('th', { class: 'num', text: '평균' }))), el('tbody', {}, ...rows));
+}
+function showResults() {
+  S.view = 'results'; S.showBanner = null;
+  const cur = S.cur, N = cur.items.length;
+  const total = Math.round(mean(cur.scores));
+  const rankWrap = el('div', { class: 'stack' });
+  const btns = el('div', { class: 'actions' });
+  const refresh = () => {
+    if (inRoom()) {
+      const ps = gamePeers();
+      const rows = ps.map(p => {
+        const sc = scoresOf(p).slice(0, N);
+        return { p, n: sc.length, avg: sc.length ? mean(sc) : 0, fin: sc.length >= N };
+      }).sort((a, b) => (b.fin - a.fin) || (b.avg - a.avg));
+      let rank = 0;
+      const host = hostPeer();
+      const trs = rows.map(r => {
+        if (r.fin) rank++;
+        const name = el('td', {}, el('span', { text: nickOf(r.p) }));
+        if (host && r.p.peer === host.peer) name.append(el('span', { class: 'badge', text: '방장' }));
+        if (isMeP(r.p)) name.append(el('span', { class: 'badge muted', text: '나' }));
+        return el('tr', { class: isMeP(r.p) ? 'meRow' : '' },
+          el('td', { class: 'rk', text: r.fin ? String(rank) : '·' }), name,
+          el('td', { class: 'small muted', text: r.fin ? '완료' : `진행 중 ${r.n}/${N}` }),
+          el('td', { class: 'num', text: r.n ? String(Math.round(r.avg)) : '-' }));
+      });
+      rankWrap.replaceChildren(
+        el('h2', { text: '순위' }),
+        el('table', {}, el('thead', {}, el('tr', {}, el('th', { text: '#' }), el('th', { text: '닉네임' }), el('th', { text: '' }), el('th', { class: 'num', text: '평균' }))), el('tbody', {}, ...trs)),
+        el('p', { class: 'small muted', text: '방을 나간 사람은 순위에서 빠집니다. 진행 중인 사람은 지금까지 푼 문제의 평균입니다.' }));
+      btns.replaceChildren();
+      const leave = el('button', { text: '방 나가기' }); leave.onclick = leaveRoom;
+      if (amHost()) {
+        const again = el('button', { class: 'primary', text: '다시 하기 (새 문제)' });
+        again.onclick = () => { S.cfg = { cats: cur.cats.slice(), len: cur.len }; hostStart(); };
+        const setup = el('button', { text: '설정 바꾸기' }); setup.onclick = showLobby;
+        btns.append(leave, setup, again);
+      } else {
+        btns.append(el('span', { class: 'small muted grow', text: '방장이 다시 시작하면 자동으로 이어집니다.' }), leave);
+      }
+    } else {
+      rankWrap.replaceChildren();
+      btns.replaceChildren();
+      const again = el('button', { class: 'primary', text: '다시 하기 (새 문제)' });
+      again.onclick = () => startGame({ id: rid(10), seed: Math.floor(Math.random() * 4294967296), cats: cur.cats.slice(), len: cur.len });
+      const setup = el('button', { text: '설정 바꾸기' }); setup.onclick = showSoloSetup;
+      const home = el('button', { text: '처음으로' }); home.onclick = () => { S.solo = false; showEntry(); };
+      btns.append(home, setup, again);
+    }
+  };
+  S.refresh = refresh;
+  app.replaceChildren(
+    topBar('미적감각 테스트' + (inRoom() ? ` · 방 ${S.code}` : ''), '결과'),
+    el('h2', { text: '내 종합 점수' }),
+    el('div', {}, el('span', { class: 'total', text: String(total) }), el('span', { class: 'muted', text: ' / 100' })),
+    rankWrap,
+    el('h2', { text: '내 테스트별 점수' }),
+    myBreakdown(),
+    btns
+  );
+  refresh();
+}
+
+showEntry();
+connectRoom();
+})();
+
+</script>
+</body>
+</html>
