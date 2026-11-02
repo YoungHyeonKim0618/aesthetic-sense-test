@@ -101,6 +101,7 @@ input[type=text]{font:inherit;font-size:1rem;padding:11px 12px;border-radius:8px
 td.rk{width:2em;font-weight:700}
 tr.meRow td{background:var(--surface)}
 .grow{flex:1;align-self:center}
+.status{display:flex;justify-content:space-between;gap:10px;font-variant-numeric:tabular-nums;font-weight:600;font-size:.9rem;padding:8px 12px;background:var(--surface);border:1px solid var(--line);border-radius:8px}
 @media (prefers-reduced-motion: reduce){.chip{transition:none}}
 </style>
 </head>
@@ -1749,6 +1750,8 @@ function testRatio(stage, ready) {
    ========================================================= */
 const CATS = [['persp', '원근·투시'], ['form', '형태·손감각'], ['illu', '착시'], ['color', '색'], ['mem', '기억']];
 const LENS = [['quick', '빠르게 12문항'], ['all', '전체 1회씩'], ['all2', '전체 2회씩']];
+const LIMS = [[60, '60초'], [90, '90초'], [120, '2분'], [0, '없음']];
+const REVEAL_MS = 8000;
 const TESTS = [
   { id: 'vp', cat: 'persp', name: '소실점 찍기', make: testVP },
   { id: 'eye', cat: 'persp', name: '눈높이선 긋기', make: testEyeLevel },
@@ -1784,14 +1787,16 @@ const TESTS = [
 ];
 const catName = id => (CATS.find(c => c[0] === id) || ['', ''])[1];
 const lenName = id => (LENS.find(l => l[0] === id) || ['', ''])[1];
+const limName = v => (LIMS.find(l => l[0] === v) || [0, '없음'])[1];
 const app = document.getElementById('app');
 const store = {
   get(k) { try { return localStorage.getItem(k); } catch (_) { return null; } },
   set(k, v) { try { localStorage.setItem(k, v); } catch (_) {} }
 };
-const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
+const mean = a => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0);
 const rid = n => { const cs = 'abcdefghjkmnpqrstuvwxyz23456789'; let s = ''; for (let i = 0; i < n; i++) s += cs[Math.floor(Math.random() * cs.length)]; return s; };
 const CODE_RE = /^[a-z0-9][a-z0-9_.-]{0,47}$/;
+const fmtTime = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 
 /* ---------- seeded RNG: everyone in a room gets the same problems ---------- */
 function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
@@ -1807,17 +1812,21 @@ function buildItems(spec) {
 }
 function validSpec(g) {
   return g && typeof g.id === 'string' && g.id.length <= 24 && typeof g.seed === 'number' && Array.isArray(g.cats) &&
-    g.cats.length > 0 && g.cats.every(c => CATS.some(k => k[0] === c)) && LENS.some(l => l[0] === g.len);
+    g.cats.length > 0 && g.cats.every(c => CATS.some(k => k[0] === c)) && LENS.some(l => l[0] === g.len) &&
+    (g.lim === undefined || LIMS.some(l => l[0] === g.lim));
 }
+const specOf = g => ({ id: g.id, seed: g.seed, cats: g.cats.slice(), len: g.len, lim: g.lim || 0 });
 
 /* ---------- app state ---------- */
 const S = {
   room: undefined,          // undefined = connecting, null = unavailable
   R: null, unsub: null, code: null, ja: 0,
   nick: store.get('mt-nick') || '',
-  cfg: { cats: CATS.map(c => c[0]), len: 'quick' },
+  cfg: { cats: CATS.map(c => c[0]), len: 'quick', lim: 90 },
   cur: null, lastGameId: null, solo: false,
-  view: 'entry', refresh: null, lobbyHost: null
+  view: 'entry', refresh: null, lobbyHost: null,
+  stage: null, stageAt: 0, item: null,
+  hostTimer: null, hostTimerKey: null, tick: null
 };
 const inRoom = () => !!S.R && !S.solo;
 const pres = patch => { if (S.R) S.R.presence(patch).catch(() => {}); };
@@ -1836,10 +1845,75 @@ function gamePeers() {
   if (!S.cur) return [];
   return players().filter(p => p.presence.game && p.presence.game.id === S.cur.id);
 }
-const scoresOf = p => (Array.isArray(p.presence.sc) ? p.presence.sc.filter(x => typeof x === 'number' && x >= 0 && x <= 100) : []);
+function scAt(p, i) {
+  if (isMeP(p) && S.cur) { const v = S.cur.scores[i]; return typeof v === 'number' ? v : null; }
+  const a = p.presence.sc;
+  return Array.isArray(a) && typeof a[i] === 'number' && a[i] >= 0 && a[i] <= 100 ? a[i] : null;
+}
+function setTick(fn) { if (S.tick) clearInterval(S.tick); S.tick = fn ? setInterval(fn, 250) : null; }
+function stopHosting() { clearTimeout(S.hostTimer); S.hostTimer = null; S.hostTimerKey = null; }
+
+/* ---------- synchronized stages (room games) ----------
+   The host owns the flow: stage {i, ph} with ph = play | rev | end.
+   Everyone mirrors the stage in presence, so a new host can take over. */
+function hostStage() {
+  const h = hostPeer();
+  if (!h || !S.cur) return null;
+  if (isMeP(h)) return S.stage;
+  const g = h.presence.game, st = h.presence.stg;
+  if (!g || g.id !== S.cur.id || !st || typeof st.i !== 'number' || !['play', 'rev', 'end'].includes(st.ph)) return null;
+  if (st.i < 0 || st.i >= S.cur.items.length) return null;
+  return { i: st.i | 0, ph: st.ph };
+}
+function applyStage(st) {
+  const cur = S.cur; if (!cur) return;
+  const prev = S.stage;
+  const changed = !(prev && prev.i === st.i && prev.ph === st.ph);
+  S.stage = { i: st.i, ph: st.ph };
+  if (changed) { S.stageAt = Date.now(); if (inRoom()) pres({ stg: S.stage }); }
+  if (st.ph === 'end') {
+    if (S.item && !S.item.done) S.item.forceClose();
+    cur.done = true;
+    if (S.view !== 'results') showResults(); else if (S.refresh) S.refresh();
+    return;
+  }
+  if (S.view !== 'play' || cur.i !== st.i || !S.item) {
+    if (S.item && !S.item.done) S.item.forceClose();
+    cur.i = st.i;
+    showItem();
+  }
+  if (st.ph === 'rev' && S.item) S.item.reveal();
+  else if (S.refresh) S.refresh();
+}
+const sameStage = (i, ph) => S.stage && S.stage.i === i && S.stage.ph === ph && amHost();
+function hostSetStage(i, ph) { applyStage({ i, ph }); hostArm(); }
+function hostNext(i) { if (i + 1 < S.cur.items.length) hostSetStage(i + 1, 'play'); else hostSetStage(i, 'end'); }
+function hostArm() {
+  if (!S.cur || !S.cur.sync || !amHost() || !S.stage) return;
+  const { i, ph } = S.stage, key = `${S.cur.id}:${i}:${ph}`;
+  if (S.hostTimerKey === key) return;
+  stopHosting(); S.hostTimerKey = key;
+  pres({ stg: S.stage });
+  if (ph === 'play' && S.cur.lim) S.hostTimer = setTimeout(() => { if (sameStage(i, 'play')) hostSetStage(i, 'rev'); }, Math.max(1000, S.stageAt + S.cur.lim * 1000 + 800 - Date.now()));
+  if (ph === 'rev') S.hostTimer = setTimeout(() => { if (sameStage(i, 'rev')) hostNext(i); }, Math.max(500, S.stageAt + REVEAL_MS - Date.now()));
+}
+function hostCheckAll() {
+  if (!S.cur || !S.cur.sync || !amHost() || !S.stage || S.stage.ph !== 'play') return;
+  const i = S.stage.i, ps = gamePeers();
+  if (ps.length && ps.every(p => scAt(p, i) != null)) hostSetStage(i, 'rev');
+}
+function syncFollow() {
+  if (!S.cur || !S.cur.sync || amHost()) return;
+  const hs = hostStage();
+  if (!hs) return;
+  if (!S.stage || hs.i !== S.stage.i || hs.ph !== S.stage.ph) applyStage(hs);
+}
 
 function onRoom() {
   followHost();
+  syncFollow();
+  hostArm();
+  hostCheckAll();
   if (S.refresh) S.refresh();
 }
 function followHost() {
@@ -1847,8 +1921,8 @@ function followHost() {
   const h = hostPeer();
   const g = h && h.presence.game;
   if (!validSpec(g) || g.id === S.lastGameId || h.presence.st !== 'play') return;
-  if (S.view === 'play' && S.cur && !S.cur.done) { if (S.showBanner) S.showBanner(g); return; }
-  startGame({ id: g.id, seed: g.seed, cats: g.cats.slice(), len: g.len });
+  if (S.view === 'play' && S.cur && !S.cur.done && S.cur.sync) return; // host only restarts from the results screen
+  startGame(specOf(g));
 }
 
 /* ---------- room connection ---------- */
@@ -1865,7 +1939,7 @@ async function joinRoom(code, nick) {
   try { history.replaceState(null, '', '#room-' + code); } catch (_) {}
   pres({ nick, ja: S.ja, st: 'lobby' });
   S.unsub = R.onPeers(onRoom, () => {
-    S.R = null; S.unsub = null;
+    S.R = null; S.unsub = null; stopHosting();
     if (S.view === 'lobby' || S.view === 'entry') showEntry('방 연결이 끊겼습니다. 다시 입장하거나 혼자 해 보세요.');
     else if (S.refresh) S.refresh();
   });
@@ -1874,61 +1948,66 @@ async function joinRoom(code, nick) {
 function leaveRoom() {
   if (S.unsub) S.unsub();
   if (S.R) S.R.leave().catch(() => {});
-  S.R = null; S.unsub = null; S.cur = null; S.code = null;
+  S.R = null; S.unsub = null; S.cur = null; S.code = null; S.stage = null; S.item = null;
+  stopHosting();
   try { history.replaceState(null, '', location.pathname + location.search); } catch (_) {}
   showEntry();
 }
 
 /* ---------- shared bits ---------- */
 function topBar(left, right) { return el('div', { class: 'top' }, el('span', { text: left }), el('span', { text: right })); }
-function playerChips(list, opts = {}) {
+function playerChips(list) {
   const host = hostPeer();
   const wrap = el('div', { class: 'plist' });
   for (const p of list) {
     const c = el('span', { class: 'pchip' + (isMeP(p) ? ' me' : '') }, el('span', { text: nickOf(p) }));
     if (host && p.peer === host.peer) c.append(el('span', { class: 'badge', text: '방장' }));
     if (isMeP(p)) c.append(el('span', { class: 'badge muted', text: '나' }));
-    if (opts.progress && S.cur) { const n = scoresOf(p).length; c.append(el('span', { class: 'prog-n', text: ` ${Math.min(n, S.cur.items.length)}/${S.cur.items.length}` })); }
     wrap.append(c);
   }
   return wrap;
 }
-function setupForm(cfg, onChange) {
+function radioGroup(name, list, value, legend) {
+  const rs = list.map(([id, label]) => {
+    const rb = el('input', { type: 'radio', name, id: name + '-' + id, value: String(id) });
+    rb.checked = value === id;
+    return { id, rb, label: el('label', { class: 'opt', for: name + '-' + id }, rb, el('span', { text: label })) };
+  });
+  return { rs, node: el('fieldset', {}, el('legend', { text: legend }), ...rs.map(r => r.label)), get: () => (rs.find(r => r.rb.checked) || rs[0]).id };
+}
+function setupForm(cfg, onChange, withLim) {
   const boxes = CATS.map(([id, name]) => {
     const cb = el('input', { type: 'checkbox', id: 'cat-' + id });
     cb.checked = cfg.cats.includes(id);
     const cnt = TESTS.filter(t => t.cat === id).length;
     return { id, cb, label: el('label', { class: 'opt', for: 'cat-' + id }, cb, el('span', { text: `${name} (${cnt})` })) };
   });
-  const lens = LENS.map(([id, name]) => {
-    const rb = el('input', { type: 'radio', name: 'len', id: 'len-' + id, value: id });
-    rb.checked = cfg.len === id;
-    return { id, rb, label: el('label', { class: 'opt', for: 'len-' + id }, rb, el('span', { text: name })) };
-  });
+  const lens = radioGroup('len', LENS, cfg.len, '길이');
+  const lims = withLim ? radioGroup('lim', LIMS, cfg.lim, '문항당 제한 시간') : null;
   const info = el('p', { class: 'small muted' });
-  const read = () => ({ cats: boxes.filter(b => b.cb.checked).map(b => b.id), len: (lens.find(l => l.rb.checked) || lens[0]).id });
   const update = () => {
-    const o = read(); cfg.cats = o.cats; cfg.len = o.len;
-    const n = countItems(o);
-    info.textContent = n ? `총 ${n}문항 · 시간 제한 없음` : '카테고리를 하나 이상 고르세요.';
+    cfg.cats = boxes.filter(b => b.cb.checked).map(b => b.id); cfg.len = lens.get();
+    if (lims) cfg.lim = lims.get();
+    const n = countItems(cfg);
+    info.textContent = n ? `총 ${n}문항` + (withLim ? (cfg.lim ? ` · 문항마다 ${limName(cfg.lim)} 안에 제출` : ' · 모두 제출하면 다음 문제') : ' · 시간 제한 없음') : '카테고리를 하나 이상 고르세요.';
     onChange(n > 0);
   };
-  [...boxes.map(b => b.cb), ...lens.map(l => l.rb)].forEach(i => i.addEventListener('change', update));
+  [...boxes.map(b => b.cb), ...lens.rs.map(r => r.rb), ...(lims ? lims.rs.map(r => r.rb) : [])].forEach(i => i.addEventListener('change', update));
   const node = el('div', { class: 'stack' },
     el('fieldset', {}, el('legend', { text: '카테고리' }), ...boxes.map(b => b.label)),
-    el('fieldset', {}, el('legend', { text: '길이' }), ...lens.map(l => l.label)),
-    info);
+    lens.node, lims ? lims.node : null, info);
   return { node, update };
 }
 function countItems(o) {
   const n = TESTS.filter(t => o.cats.includes(t.cat)).length;
   return o.len === 'quick' ? Math.min(12, n) : o.len === 'all' ? n : n * 2;
 }
-const cfgText = c => `${c.cats.map(catName).join(', ')} · ${lenName(c.len)} (${countItems(c)}문항)`;
+const cfgText = c => `${c.cats.map(catName).join(', ')} · ${lenName(c.len)} (${countItems(c)}문항) · 제한 시간 ${limName(c.lim || 0)}`;
+function selectText(node) { try { const r = document.createRange(); r.selectNodeContents(node); const s = getSelection(); s.removeAllRanges(); s.addRange(r); } catch (_) {} }
 
 /* ---------- entry ---------- */
 function showEntry(msg) {
-  S.view = 'entry'; S.cur = null;
+  S.view = 'entry'; S.cur = null; S.item = null; S.stage = null; setTick(null);
   const hashCode = (location.hash.match(/^#room-([a-z0-9][a-z0-9_.-]{0,47})$/) || [])[1] || '';
   const nickIn = el('input', { type: 'text', id: 'nick', maxlength: 12, placeholder: '닉네임', autocomplete: 'off' });
   nickIn.value = S.nick;
@@ -1964,7 +2043,7 @@ function showEntry(msg) {
   S.refresh = refresh;
   app.replaceChildren(
     el('h1', { text: '미적감각 테스트' }),
-    el('p', { class: 'muted', text: `원근, 형태, 착시, 색, 기억을 다루는 테스트 ${TESTS.length}종입니다. 같은 방에 들어온 사람들은 똑같은 문제를 풀고, 끝나면 순위를 봅니다.` }),
+    el('p', { class: 'muted', text: `원근, 형태, 착시, 색, 기억을 다루는 테스트 ${TESTS.length}종입니다. 같은 방에 들어온 사람들은 똑같은 문제를 동시에 풀고, 문제마다 순위를 봅니다.` }),
     el('div', { class: 'stack' },
       el('label', { class: 'small muted', for: 'nick', text: '닉네임' }), nickIn,
       el('label', { class: 'small muted', for: 'code', text: '방 코드 (친구가 만든 방이면 그 코드를 입력)' }), codeIn),
@@ -1976,10 +2055,10 @@ function showEntry(msg) {
 
 /* ---------- lobby ---------- */
 function showLobby() {
-  S.view = 'lobby'; S.cur = null;
+  S.view = 'lobby'; S.cur = null; S.item = null; S.stage = null; setTick(null); stopHosting();
   const host = amHost();
   S.lobbyHost = host;
-  pres({ st: 'lobby', cfg: host ? { cats: S.cfg.cats, len: S.cfg.len } : null });
+  pres({ st: 'lobby', stg: null, cfg: host ? { cats: S.cfg.cats, len: S.cfg.len, lim: S.cfg.lim } : null });
   const codeEl = el('div', { class: 'code', text: S.code });
   const copy = el('button', { text: window.__standalone ? '초대 링크 복사' : '코드 복사' });
   copy.onclick = () => {
@@ -1993,7 +2072,7 @@ function showLobby() {
   leave.onclick = leaveRoom;
   if (host) {
     const start = el('button', { class: 'primary', text: '시작하기' });
-    const form = setupForm(S.cfg, ok => { start.disabled = !ok; pres({ cfg: { cats: S.cfg.cats, len: S.cfg.len } }); });
+    const form = setupForm(S.cfg, ok => { start.disabled = !ok; pres({ cfg: { cats: S.cfg.cats, len: S.cfg.len, lim: S.cfg.lim } }); }, true);
     start.onclick = hostStart;
     area.append(el('h2', { text: '게임 설정' }), form.node, el('div', { class: 'actions' }, leave, start));
     form.update();
@@ -2008,9 +2087,9 @@ function showLobby() {
     plWrap.replaceChildren(el('p', { class: 'small muted', text: `참가자 ${ps.length}명` }), playerChips(ps));
     if (area.cfgEl) {
       const h = hostPeer(), c = h && h.presence.cfg;
-      const st = h && h.presence.st;
-      area.cfgEl.textContent = (c && Array.isArray(c.cats) && c.cats.length) ? cfgText({ cats: c.cats.filter(x => CATS.some(k => k[0] === x)), len: c.len }) : '방장이 설정하는 중입니다.';
-      if (st === 'play') area.cfgEl.textContent += ' · 지금 게임이 진행 중입니다. 다음 판부터 함께할 수 있습니다.';
+      area.cfgEl.textContent = (c && Array.isArray(c.cats) && c.cats.length)
+        ? cfgText({ cats: c.cats.filter(x => CATS.some(k => k[0] === x)), len: c.len, lim: LIMS.some(l => l[0] === c.lim) ? c.lim : 0 })
+        : '방장이 설정하는 중입니다.';
     }
   };
   S.refresh = refresh;
@@ -2022,19 +2101,18 @@ function showLobby() {
   );
   refresh();
 }
-function selectText(node) { try { const r = document.createRange(); r.selectNodeContents(node); const s = getSelection(); s.removeAllRanges(); s.addRange(r); } catch (_) {} }
 function hostStart() {
-  startGame({ id: rid(10), seed: Math.floor(Math.random() * 4294967296), cats: S.cfg.cats.slice(), len: S.cfg.len });
+  startGame({ id: rid(10), seed: Math.floor(Math.random() * 4294967296), cats: S.cfg.cats.slice(), len: S.cfg.len, lim: S.cfg.lim });
 }
 
 /* ---------- solo setup ---------- */
 function showSoloSetup() {
-  S.view = 'solo'; S.solo = true; S.refresh = null;
+  S.view = 'solo'; S.solo = true; S.refresh = null; setTick(null);
   const start = el('button', { class: 'primary', text: '시작하기' });
   const back = el('button', { text: '처음으로' });
   back.onclick = () => { S.solo = false; showEntry(); };
-  const form = setupForm(S.cfg, ok => { start.disabled = !ok; });
-  start.onclick = () => startGame({ id: rid(10), seed: Math.floor(Math.random() * 4294967296), cats: S.cfg.cats.slice(), len: S.cfg.len });
+  const form = setupForm(S.cfg, ok => { start.disabled = !ok; }, false);
+  start.onclick = () => startGame({ id: rid(10), seed: Math.floor(Math.random() * 4294967296), cats: S.cfg.cats.slice(), len: S.cfg.len, lim: 0 });
   app.replaceChildren(
     topBar('미적감각 테스트', '혼자 하기'),
     el('h2', { text: '혼자 하기' }),
@@ -2047,73 +2125,130 @@ function showSoloSetup() {
 
 /* ---------- game ---------- */
 function startGame(spec) {
-  S.cur = { ...spec, items: buildItems(spec), i: 0, scores: [], done: false };
-  S.lastGameId = spec.id;
-  if (inRoom()) pres({ st: 'play', game: { id: spec.id, seed: spec.seed, cats: spec.cats, len: spec.len }, sc: [] });
-  showItem();
+  const items = buildItems(spec);
+  S.cur = { ...spec, items, i: 0, scores: items.map(() => null), done: false, sync: inRoom() };
+  S.lastGameId = spec.id; S.stage = null; S.item = null; stopHosting();
+  if (inRoom()) pres({ st: 'play', game: { id: spec.id, seed: spec.seed, cats: spec.cats, len: spec.len, lim: spec.lim || 0 }, sc: S.cur.scores.slice(), stg: null });
+  if (S.cur.sync && amHost()) hostSetStage(0, 'play');
+  else if (S.cur.sync) { const hs = hostStage(); if (hs) applyStage(hs); else { applyStage({ i: 0, ph: 'play' }); } }
+  else showItem();
   window.scrollTo(0, 0);
 }
+function stageRankTable(i) {
+  const rows = gamePeers().map(p => ({ p, s: scAt(p, i) })).sort((a, b) => ((b.s == null ? -1 : b.s) - (a.s == null ? -1 : a.s)));
+  let rank = 0, prev = null, shown = 0;
+  const trs = rows.map(r => {
+    shown++;
+    if (r.s !== prev) { rank = shown; prev = r.s; }
+    const name = el('td', {}, el('span', { text: nickOf(r.p) }));
+    if (isMeP(r.p)) name.append(el('span', { class: 'badge muted', text: '나' }));
+    return el('tr', { class: isMeP(r.p) ? 'meRow' : '' }, el('td', { class: 'rk', text: r.s == null ? '·' : String(rank) }), name, el('td', { class: 'num', text: r.s == null ? '미제출' : String(r.s) }));
+  });
+  return el('table', {}, el('tbody', {}, ...trs));
+}
 function showItem() {
-  const cur = S.cur, it = cur.items[cur.i], last = cur.i === cur.items.length - 1;
+  const cur = S.cur, it = cur.items[cur.i], last = cur.i === cur.items.length - 1, idx = cur.i;
+  const sync = cur.sync;
   S.view = 'play';
-  RNG = mulberry32(hashStr(cur.seed + '|' + cur.i));
+  RNG = mulberry32(hashStr(cur.seed + '|' + idx));
   const h = el('h2', {}, el('span', { text: it.t.name }), it.rounds > 1 ? el('span', { class: 'r', text: `${it.r + 1}/${it.rounds}` }) : null);
   const instr = el('p', { class: 'instr' });
   const stage = el('div', { class: 'stage' });
   const fb = el('div', { class: 'feedback', hidden: true });
   const btn = el('button', { class: 'primary', text: '제출' });
   btn.disabled = true;
-  const prog = el('div', { class: 'prog' }, el('i', { style: `width:${(cur.i / cur.items.length) * 100}%` }));
-  const live = el('div', { class: 'live' });
-  const bannerSlot = el('div');
-  const others = el('p', { class: 'small muted' });
+  const hostBtn = el('button', { hidden: true });
+  const prog = el('div', { class: 'prog' }, el('i', { style: `width:${(idx / cur.items.length) * 100}%` }));
+  const statusEl = el('div', { class: 'status' });
+  const waitEl = el('p', { class: 'small muted' });
+  const revealEl = el('div', { class: 'stack' });
   app.replaceChildren(
-    topBar(catName(it.t.cat) + (inRoom() ? ` · 방 ${S.code}` : ''), `${cur.i + 1} / ${cur.items.length}`),
-    prog, bannerSlot, live, h, instr, stage, fb, el('div', { class: 'actions' }, btn)
+    topBar(catName(it.t.cat) + (sync ? ` · 방 ${S.code}` : ''), `${idx + 1} / ${cur.items.length}`),
+    prog, sync ? statusEl : null, h, instr, stage, fb, el('div', { class: 'actions' }, hostBtn, btn)
   );
-  let done = false;
+  let done = false, revealed = false;
   const ready = v => { if (!done) btn.disabled = !v; };
   const api = it.t.make(stage, ready);
   instr.textContent = api.instr;
-  S.showBanner = g => {
-    bannerSlot.replaceChildren(el('div', { class: 'banner' }, el('span', { text: '방장이 새 게임을 시작했습니다.' }),
-      Object.assign(el('button', { class: 'primary', text: '새 게임으로 이동' }), { onclick: () => startGame({ id: g.id, seed: g.seed, cats: g.cats.slice(), len: g.len }) })));
-  };
-  const refresh = () => {
-    if (!inRoom()) { live.replaceChildren(); others.textContent = ''; return; }
-    const ps = gamePeers();
-    live.replaceChildren(playerChips(ps, { progress: true }));
-    if (done) {
-      const os = ps.filter(p => !isMeP(p)).map(p => [nickOf(p), scoresOf(p)[cur.i]]).filter(x => typeof x[1] === 'number');
-      others.textContent = os.length ? '이 문제 다른 사람 점수: ' + os.map(([n, s]) => `${n} ${s}점`).join(' · ') : (ps.length > 1 ? '아직 이 문제를 제출한 다른 사람이 없습니다.' : '');
-    }
-  };
-  S.refresh = refresh;
-  refresh();
+
+  function record(score) {
+    cur.scores[idx] = score;
+    if (inRoom()) pres({ sc: cur.scores.slice(), st: (sync ? (last ? 'play' : 'play') : (last ? 'done' : 'play')) });
+  }
+  function submit(note) {
+    if (done) return;
+    done = true;
+    let res;
+    try { res = api.submit(); } catch (_) { res = { score: 0, text: '답을 채점하지 못했습니다.' }; }
+    record(res.score);
+    fb.replaceChildren(el('div', { class: 'score', text: `${res.score}점` }), note ? el('p', { class: 'small err', text: note }) : null, el('p', { class: 'small', text: res.text }), res.node || null, sync ? waitEl : null, sync ? revealEl : null);
+    fb.hidden = false;
+    afterDone();
+  }
+  function giveZero(note) {
+    if (done) return;
+    done = true;
+    record(0);
+    stage.style.pointerEvents = 'none'; stage.style.opacity = '.55';
+    fb.replaceChildren(el('div', { class: 'score', text: '0점' }), el('p', { class: 'small err', text: note }), waitEl, revealEl);
+    fb.hidden = false;
+    afterDone();
+  }
+  function afterDone() {
+    if (sync) { btn.hidden = true; refresh(); hostCheckAll(); }
+    else { btn.textContent = last ? '결과 보기' : '다음'; btn.disabled = false; btn.focus({ preventScroll: true }); }
+  }
   btn.onclick = () => {
-    if (!done) {
-      done = true;
-      const res = api.submit();
-      cur.scores.push(res.score);
-      if (inRoom()) pres({ sc: cur.scores.slice(), st: last ? 'done' : 'play' });
-      fb.replaceChildren(el('div', { class: 'score', text: `${res.score}점` }), el('p', { class: 'small', text: res.text }), res.node || null, others);
-      fb.hidden = false;
-      refresh();
-      btn.textContent = last ? '결과 보기' : '다음';
-      btn.disabled = false;
-      btn.focus({ preventScroll: true });
-    } else {
+    if (!done) submit();
+    else if (!sync) {
       cur.i++;
       if (cur.i < cur.items.length) showItem(); else { cur.done = true; showResults(); }
       window.scrollTo(0, 0);
     }
   };
+  function refresh() {
+    if (!sync) return;
+    const ps = gamePeers(), n = ps.filter(p => scAt(p, idx) != null).length;
+    const st = S.stage, now = Date.now();
+    let clock = '';
+    if (st && st.i === idx && st.ph === 'play') clock = cur.lim ? `남은 시간 ${fmtTime(S.stageAt + cur.lim * 1000 - now)}` : '제한 시간 없음';
+    else if (revealed) clock = `${last ? '최종 결과' : '다음 문제'}까지 ${fmtTime(S.stageAt + REVEAL_MS - now)}`;
+    statusEl.replaceChildren(el('span', { text: clock }), el('span', { text: `제출 ${n} / ${ps.length}` }));
+    if (done && !revealed) waitEl.textContent = n < ps.length ? '다른 사람이 제출하기를 기다리는 중입니다.' : '모두 제출했습니다.';
+    const host = amHost();
+    if (host && !revealed) { hostBtn.hidden = false; hostBtn.textContent = '지금 마감'; hostBtn.onclick = () => { if (sameStage(idx, 'play')) hostSetStage(idx, 'rev'); }; }
+    else if (host && revealed) { hostBtn.hidden = false; hostBtn.className = 'primary'; hostBtn.textContent = last ? '최종 결과 보기' : '다음 문제'; hostBtn.onclick = () => { if (sameStage(idx, 'rev')) hostNext(idx); }; }
+    else hostBtn.hidden = true;
+    if (revealed) revealEl.replaceChildren(el('h2', { text: '이번 문제 순위' }), stageRankTable(idx));
+  }
+  S.item = {
+    get done() { return done; },
+    forceClose() {
+      if (done) return;
+      if (!btn.disabled) submit('시간이 끝나 지금 상태로 자동 제출했습니다.');
+      else giveZero('시간 안에 제출하지 못했습니다.');
+    },
+    reveal() {
+      if (!done) this.forceClose();
+      if (revealed) return;
+      revealed = true; waitEl.textContent = '';
+      refresh();
+      revealEl.scrollIntoView && revealEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  };
+  S.refresh = refresh;
+  setTick(sync ? () => {
+    refresh();
+    // local fallback: if the host vanished, close my own answer when time is up
+    if (!done && cur.lim && S.stage && S.stage.i === idx && S.stage.ph === 'play' && Date.now() > S.stageAt + cur.lim * 1000 + 4000) S.item.forceClose();
+  } : null);
+  refresh();
 }
 
 /* ---------- results ---------- */
 function myBreakdown() {
   const cur = S.cur, by = {};
-  cur.items.forEach((it, i) => { if (typeof cur.scores[i] === 'number') (by[it.t.id] = by[it.t.id] || []).push(cur.scores[i]); });
+  cur.items.forEach((it, i) => { (by[it.t.id] = by[it.t.id] || []).push(typeof cur.scores[i] === 'number' ? cur.scores[i] : 0); });
   const rows = [];
   for (const [cid, cname] of CATS) {
     const ts = TESTS.filter(t => t.cat === cid && by[t.id]);
@@ -2130,39 +2265,37 @@ function myBreakdown() {
   return el('table', {}, el('thead', {}, el('tr', {}, el('th', { text: '테스트' }), el('th', { text: '' }), el('th', { class: 'num', text: '평균' }))), el('tbody', {}, ...rows));
 }
 function showResults() {
-  S.view = 'results'; S.showBanner = null;
+  S.view = 'results'; S.item = null; setTick(null);
   const cur = S.cur, N = cur.items.length;
-  const total = Math.round(mean(cur.scores));
+  if (cur.sync) pres({ st: 'done', sc: cur.scores.slice() });
+  const total = Math.round(mean(cur.scores.map(s => (typeof s === 'number' ? s : 0))));
   const rankWrap = el('div', { class: 'stack' });
   const btns = el('div', { class: 'actions' });
   const refresh = () => {
-    if (inRoom()) {
-      const ps = gamePeers();
-      const rows = ps.map(p => {
-        const sc = scoresOf(p).slice(0, N);
-        return { p, n: sc.length, avg: sc.length ? mean(sc) : 0, fin: sc.length >= N };
-      }).sort((a, b) => (b.fin - a.fin) || (b.avg - a.avg));
-      let rank = 0;
+    if (cur.sync && inRoom()) {
+      const rows = gamePeers().map(p => {
+        let sum = 0; for (let i = 0; i < N; i++) { const v = scAt(p, i); sum += v == null ? 0 : v; }
+        return { p, avg: sum / N };
+      }).sort((a, b) => b.avg - a.avg);
       const host = hostPeer();
-      const trs = rows.map(r => {
-        if (r.fin) rank++;
+      let rank = 0, prev = null;
+      const trs = rows.map((r, k) => {
+        const a = Math.round(r.avg);
+        if (a !== prev) { rank = k + 1; prev = a; }
         const name = el('td', {}, el('span', { text: nickOf(r.p) }));
         if (host && r.p.peer === host.peer) name.append(el('span', { class: 'badge', text: '방장' }));
         if (isMeP(r.p)) name.append(el('span', { class: 'badge muted', text: '나' }));
-        return el('tr', { class: isMeP(r.p) ? 'meRow' : '' },
-          el('td', { class: 'rk', text: r.fin ? String(rank) : '·' }), name,
-          el('td', { class: 'small muted', text: r.fin ? '완료' : `진행 중 ${r.n}/${N}` }),
-          el('td', { class: 'num', text: r.n ? String(Math.round(r.avg)) : '-' }));
+        return el('tr', { class: isMeP(r.p) ? 'meRow' : '' }, el('td', { class: 'rk', text: String(rank) }), name, el('td', { class: 'num', text: String(a) }));
       });
       rankWrap.replaceChildren(
-        el('h2', { text: '순위' }),
-        el('table', {}, el('thead', {}, el('tr', {}, el('th', { text: '#' }), el('th', { text: '닉네임' }), el('th', { text: '' }), el('th', { class: 'num', text: '평균' }))), el('tbody', {}, ...trs)),
-        el('p', { class: 'small muted', text: '방을 나간 사람은 순위에서 빠집니다. 진행 중인 사람은 지금까지 푼 문제의 평균입니다.' }));
+        el('h2', { text: '최종 순위' }),
+        el('table', {}, el('thead', {}, el('tr', {}, el('th', { text: '#' }), el('th', { text: '닉네임' }), el('th', { class: 'num', text: '평균' }))), el('tbody', {}, ...trs)),
+        el('p', { class: 'small muted', text: '미제출 문제는 0점으로 계산합니다. 방을 나간 사람은 순위에서 빠집니다.' }));
       btns.replaceChildren();
       const leave = el('button', { text: '방 나가기' }); leave.onclick = leaveRoom;
       if (amHost()) {
         const again = el('button', { class: 'primary', text: '다시 하기 (새 문제)' });
-        again.onclick = () => { S.cfg = { cats: cur.cats.slice(), len: cur.len }; hostStart(); };
+        again.onclick = () => { S.cfg = { cats: cur.cats.slice(), len: cur.len, lim: cur.lim || 0 }; hostStart(); };
         const setup = el('button', { text: '설정 바꾸기' }); setup.onclick = showLobby;
         btns.append(leave, setup, again);
       } else {
@@ -2172,7 +2305,7 @@ function showResults() {
       rankWrap.replaceChildren();
       btns.replaceChildren();
       const again = el('button', { class: 'primary', text: '다시 하기 (새 문제)' });
-      again.onclick = () => startGame({ id: rid(10), seed: Math.floor(Math.random() * 4294967296), cats: cur.cats.slice(), len: cur.len });
+      again.onclick = () => startGame({ id: rid(10), seed: Math.floor(Math.random() * 4294967296), cats: cur.cats.slice(), len: cur.len, lim: 0 });
       const setup = el('button', { text: '설정 바꾸기' }); setup.onclick = showSoloSetup;
       const home = el('button', { text: '처음으로' }); home.onclick = () => { S.solo = false; showEntry(); };
       btns.append(home, setup, again);
@@ -2180,7 +2313,7 @@ function showResults() {
   };
   S.refresh = refresh;
   app.replaceChildren(
-    topBar('미적감각 테스트' + (inRoom() ? ` · 방 ${S.code}` : ''), '결과'),
+    topBar('미적감각 테스트' + (cur.sync ? ` · 방 ${S.code}` : ''), '결과'),
     el('h2', { text: '내 종합 점수' }),
     el('div', {}, el('span', { class: 'total', text: String(total) }), el('span', { class: 'muted', text: ' / 100' })),
     rankWrap,
